@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::data::vm::*;
+use crate::data::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct HAddr(usize);

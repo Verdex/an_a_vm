@@ -1,18 +1,6 @@
 
-#[derive(Debug)]
-pub struct Vm {
-    stack : Vec<>,
-}
-
-impl Vm {
-    pub fn new() -> Self { 
-        Vm { }
-    }
-
-    pub fn run(&mut self) -> ? {
-
-    }
-}
+mod data;
+mod vm;
 
 
 #[cfg(test)]
