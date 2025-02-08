@@ -6,16 +6,16 @@ pub enum VmError {
     X
 }
 
-pub enum P { // TODO p => reg
+pub enum Reg { 
     Frame(isize),
     Base(isize),
     Return,
 }
 
 pub enum Op {
-    Gen(usize, Vec<P>),
-    Call(usize, Vec<P>),
-    Return(P),
+    Gen(usize, Vec<Reg>),
+    Call(usize, Vec<Reg>),
+    Return(Reg),
 }
 
 pub struct Fun {
@@ -25,7 +25,7 @@ pub struct Fun {
 
 pub struct GenericOp<Data> {
     pub name : Box<str>,
-    pub op : fn(&mut Vec<Data>, &Vec<P>) -> Result<(), VmError>,
+    pub op : fn(&mut Vec<Data>, &Vec<Reg>) -> Result<(), VmError>,
 }
 
 pub struct Vm<Data> {
