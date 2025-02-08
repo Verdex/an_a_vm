@@ -6,7 +6,7 @@ pub enum VmError {
     X
 }
 
-pub enum P {
+pub enum P { // TODO p => reg
     Frame(isize),
     Base(isize),
     Return,
@@ -41,7 +41,7 @@ struct RetAddr {
 }
 
 impl<Data> Vm<Data> {
-    pub fn run(&mut self, entry : usize) -> Result<(), VmError> {
+    pub fn run(&mut self, entry : usize) -> Result<Data, VmError> {
         let mut frame = self.data.len();
         let mut fun_stack : Vec<RetAddr> = vec![];
         let mut ip = 0;
@@ -63,6 +63,9 @@ impl<Data> Vm<Data> {
                     ip = 0;
                     frame = self.data.len();
                 },
+                /*Op::Return() if fun_stack.len() == 0 => {
+                    
+                },*/
                 _ => { todo!() },
             }
         }
