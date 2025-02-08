@@ -41,7 +41,7 @@ struct RetAddr {
 }
 
 impl<Data> Vm<Data> {
-    pub fn run(&mut self, entry : usize) -> Result<Data, VmError> {
+    pub fn run(&mut self, entry : usize) -> Result<Option<Data>, VmError> {
         let mut frame = self.data.len();
         let mut fun_stack : Vec<RetAddr> = vec![];
         let mut ip = 0;
@@ -62,10 +62,17 @@ impl<Data> Vm<Data> {
                     current = fun_index;
                     ip = 0;
                     frame = self.data.len();
+                    // TODO move params
                 },
-                /*Op::Return() if fun_stack.len() == 0 => {
-                    
-                },*/
+                Op::Return(ref reg) {
+                    // TODO pop off self.data for this call, but save it off so that
+                    // data can be moved to ret instead of cloned
+                    // TODO what if the offset from base or frame end up outside of current local scope
+                    /*let target = match reg {
+                        Reg::Return => ret,
+                        Reg::Base(offset) => ,
+                    };*/
+                },
                 _ => { todo!() },
             }
         }
