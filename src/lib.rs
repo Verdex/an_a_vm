@@ -64,7 +64,7 @@ impl<Data> Vm<Data> {
                     frame = self.data.len();
                     // TODO move params
                 },
-                Op::Return(ref reg) {
+                Op::Return(ref reg) => {
                     // TODO pop off self.data for this call, but save it off so that
                     // data can be moved to ret instead of cloned
                     // TODO what if the offset from base or frame end up outside of current local scope
