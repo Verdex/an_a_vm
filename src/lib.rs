@@ -12,22 +12,22 @@ pub enum P {
     Return,
 }
 
-pub enum Op<Data> {
-    Gen(Box<str>, fn(&mut Data, Vec<P>) -> Result<(), VmError>),
+pub enum Op {
+    Gen(usize),
     Call(usize, Vec<P>),
     Return(P),
 }
 
-pub struct Fun<Data>(Box<str>, Vec<Op<Data>>);
+pub struct Fun(Box<str>, Vec<Op>);
 
 pub struct Vm<Data> {
-    fs : Vec<Fun<Data>>,
-    ops : Vec<Op<Data>>,
+    fs : Vec<Fun>,
+    ops : Vec<(Box<str>, fn(&mut Data, Vec<P>) -> Result<(), VmError>)>,
     data : Vec<Data>,
 }
 
 impl<Data> Vm<Data> {
-    pub fn run(&mut self) -> Result<(), VmError> {
+    pub fn run(&mut self, entry : usize) -> Result<(), VmError> {
         Err(VmError::X)
     }
 }
