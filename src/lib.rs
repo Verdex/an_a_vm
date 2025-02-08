@@ -34,7 +34,7 @@ struct RetAddr {
 impl<Data> Vm<Data> {
     pub fn run(&mut self, entry : usize) -> Result<(), VmError> {
         let mut frame = self.data.len() - 1;
-        let mut ret_stack : Option<RetAddr> = None;
+        let mut fun_stack : Option<RetAddr> = None;
         Err(VmError::X)
     }
 }
