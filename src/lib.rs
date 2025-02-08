@@ -37,14 +37,16 @@ pub struct Vm<Data> {
 struct RetAddr {
     fun : usize,
     instr : usize,
+    frame : usize,
 }
 
 impl<Data> Vm<Data> {
     pub fn run(&mut self, entry : usize) -> Result<(), VmError> {
-        let mut frame = self.data.len() - 1;
-        let mut fun_stack : Option<RetAddr> = None;
+        let mut frame = self.data.len();
+        let mut fun_stack : Vec<RetAddr> = vec![];
         let mut ip = 0;
         let mut current = entry;
+        let mut ret : Option<Data> = None;
 
         loop {
             // TODO what if current does not exist
@@ -54,6 +56,12 @@ impl<Data> Vm<Data> {
                     // TODO what if op_index does not exist
                     (self.ops[op_index].op)(&mut self.data, params)?;
                     ip += 1;
+                },
+                Op::Call(fun_index, ref params) => {
+                    fun_stack.push(RetAddr { fun: current, instr: ip + 1, frame: frame });
+                    current = fun_index;
+                    ip = 0;
+                    frame = self.data.len();
                 },
                 _ => { todo!() },
             }
