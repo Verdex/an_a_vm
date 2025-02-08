@@ -13,7 +13,7 @@ pub enum P {
 }
 
 pub enum Op {
-    Gen(usize),
+    Gen(usize, Vec<P>),
     Call(usize, Vec<P>),
     Return(P),
 }
