@@ -6,16 +6,15 @@ pub enum VmError {
     X
 }
 
-pub enum Reg { 
-    Frame(isize),
-    Base(isize),
+pub enum Slot { 
+    Local(usize),
     Return,
 }
 
 pub enum Op {
-    Gen(usize, Vec<Reg>),
-    Call(usize, Vec<Reg>),
-    Return(Reg),
+    Gen(usize, Vec<Slot>),
+    Call(usize, Vec<Slot>),
+    Return(Slot),
 }
 
 pub struct Fun {
@@ -25,13 +24,13 @@ pub struct Fun {
 
 pub struct GenericOp<Data> {
     pub name : Box<str>,
-    pub op : fn(&mut Vec<Data>, &Vec<Reg>) -> Result<(), VmError>,
+    pub op : fn(&mut Vec<Vec<Data>>, &Vec<Slot>) -> Result<(), VmError>,
 }
 
 pub struct Vm<Data> {
     fs : Vec<Fun>,
     ops : Vec<GenericOp<Data>>,
-    data : Vec<Data>,
+    data : Vec<Vec<Data>>,
 }
 
 struct RetAddr {
@@ -64,7 +63,7 @@ impl<Data> Vm<Data> {
                     frame = self.data.len();
                     // TODO move params
                 },
-                Op::Return(ref reg) => {
+                Op::Return(ref slot) => {
                     // TODO pop off self.data for this call, but save it off so that
                     // data can be moved to ret instead of cloned
                     // TODO what if the offset from base or frame end up outside of current local scope
