@@ -25,7 +25,7 @@ pub struct Fun {
 
 pub struct GenericOp<Data> {
     pub name : Box<str>,
-    pub op : fn(&mut Vec<Vec<Data>>, &Vec<Slot>) -> Result<(), VmError>,
+    pub op : fn(&mut Vec<Vec<Data>>, &mut Option<Data>, &Vec<Slot>) -> Result<(), VmError>,
 }
 
 pub struct Vm<Data> {
@@ -54,7 +54,7 @@ impl<Data> Vm<Data> {
             match self.fs[current].instrs[ip] {
                 Op::Gen(op_index, ref params) => {
                     // TODO what if op_index does not exist
-                    (self.ops[op_index].op)(&mut self.data, params)?;
+                    (self.ops[op_index].op)(&mut self.data, &mut ret, params)?;
                     ip += 1;
                 },
                 Op::Call(fun_index, ref params) => {
