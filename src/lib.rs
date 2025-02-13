@@ -59,6 +59,7 @@ impl<Data> Vm<Data> {
                     fun_stack.push(RetAddr { fun: current, instr: ip + 1 });
                     current = fun_index;
                     ip = 0;
+                    self.data.push(vec![]);
                     // TODO move params
                 },
                 Op::ReturnSlot(ref slot) => {
@@ -71,7 +72,18 @@ impl<Data> Vm<Data> {
                     };*/
                 },
                 Op::Return => {
-                    todo!()
+                    match fun_stack.pop() {
+                        // Note:  if the stack is empty then all execution is finished
+                        None => {
+                            return Ok(None);
+                        },
+                        Some(ret_addr) => {
+                            self.data.pop();
+                            current = ret_addr.fun;
+                            ip = ret_addr.instr;
+                            ret = None;
+                        },
+                    }
                 },
                 _ => { todo!() },
             }
