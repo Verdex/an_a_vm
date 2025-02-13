@@ -46,6 +46,8 @@ impl<Data> Vm<Data> {
         let mut current = entry;
         let mut ret : Option<Data> = None;
 
+        // Note:  Initial locals for entry function
+        self.data.push(vec![]);
         loop {
             // TODO what if current does not exist
             // TODO what if ip does not exist
@@ -63,13 +65,24 @@ impl<Data> Vm<Data> {
                     // TODO move params
                 },
                 Op::ReturnSlot(ref slot) => {
-                    // TODO pop off self.data for this call, but save it off so that
-                    // data can be moved to ret instead of cloned
-                    // TODO what if the offset from base or frame end up outside of current local scope
-                    /*let target = match reg {
-                        Reg::Return => ret,
-                        Reg::Base(offset) => ,
-                    };*/
+                    let mut current_locals = self.data.pop().unwrap();
+
+                    let ret_target = match slot {
+                        Slot::Local(index) => current_locals.swap_remove(*index), // TODO what if this isn't something
+                        Slot::Return => ret.unwrap(), // TODO what if this isn't something
+                    };
+
+                    match fun_stack.pop() {
+                        // Note:  if the stack is empty then all execution is finished
+                        None => {
+                            return Ok(Some(ret_target));
+                        },
+                        Some(ret_addr) => {
+                            current = ret_addr.fun;
+                            ip = ret_addr.instr;
+                            ret = Some(ret_target);
+                        },
+                    }
                 },
                 Op::Return => {
                     match fun_stack.pop() {
