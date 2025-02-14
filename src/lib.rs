@@ -24,15 +24,16 @@ pub struct Fun {
     pub instrs : Vec<Op>,
 }
 
-pub struct GenericOp<Data> {
+pub struct GenericOp<Data, Unique> {
     pub name : Box<str>,
-    pub op : fn(&mut Vec<Vec<Data>>, &mut Option<Data>, &mut bool, &Vec<Slot>) -> Result<(), VmError>,
+    pub op : fn(&mut Vec<Vec<Data>>, &mut Vec<Unique>, &mut Option<Data>, &mut bool, &Vec<Slot>) -> Result<(), VmError>,
 }
 
-pub struct Vm<Data> {
+pub struct Vm<Data, Unique> {
     fs : Vec<Fun>,
-    ops : Vec<GenericOp<Data>>,
+    ops : Vec<GenericOp<Data, Unique>>,
     data : Vec<Vec<Data>>,
+    unique : Vec<Unique>,
 }
 
 struct RetAddr {
@@ -40,7 +41,7 @@ struct RetAddr {
     instr : usize,
 }
 
-impl<Data : Clone> Vm<Data> {
+impl<Data : Clone, Unique> Vm<Data, Unique> {
     pub fn run(&mut self, entry : usize) -> Result<Option<Data>, VmError> {
         let mut fun_stack : Vec<RetAddr> = vec![];
         let mut ip = 0;
@@ -56,7 +57,7 @@ impl<Data : Clone> Vm<Data> {
             match self.fs[current].instrs[ip] {
                 Op::Gen(op_index, ref params) => {
                     // TODO what if op_index does not exist
-                    (self.ops[op_index].op)(&mut self.data, &mut ret, &mut branch, params)?;
+                    (self.ops[op_index].op)(&mut self.data, &mut self.unique, &mut ret, &mut branch, params)?;
                     ip += 1;
                 },
                 Op::Call(fun_index, ref params) => {
