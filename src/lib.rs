@@ -16,6 +16,7 @@ pub enum Op {
     Call(usize, Vec<Slot>),
     ReturnSlot(Slot),
     Return,
+    Branch(usize),
 }
 
 pub struct Fun {
@@ -25,7 +26,7 @@ pub struct Fun {
 
 pub struct GenericOp<Data> {
     pub name : Box<str>,
-    pub op : fn(&mut Vec<Vec<Data>>, &mut Option<Data>, &Vec<Slot>) -> Result<(), VmError>,
+    pub op : fn(&mut Vec<Vec<Data>>, &mut Option<Data>, &mut bool, &Vec<Slot>) -> Result<(), VmError>,
 }
 
 pub struct Vm<Data> {
@@ -45,6 +46,7 @@ impl<Data> Vm<Data> {
         let mut ip = 0;
         let mut current = entry;
         let mut ret : Option<Data> = None;
+        let mut branch = false;
 
         // Note:  Initial locals for entry function
         self.data.push(vec![]);
@@ -54,7 +56,7 @@ impl<Data> Vm<Data> {
             match self.fs[current].instrs[ip] {
                 Op::Gen(op_index, ref params) => {
                     // TODO what if op_index does not exist
-                    (self.ops[op_index].op)(&mut self.data, &mut ret, params)?;
+                    (self.ops[op_index].op)(&mut self.data, &mut ret, &mut branch, params)?;
                     ip += 1;
                 },
                 Op::Call(fun_index, ref params) => {
@@ -98,7 +100,9 @@ impl<Data> Vm<Data> {
                         },
                     }
                 },
-                _ => { todo!() },
+                Op::Branch(target) if branch => {
+                    ip = target;
+                },
             }
         }
         Err(VmError::X)
