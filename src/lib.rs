@@ -103,6 +103,9 @@ impl<Data> Vm<Data> {
                 Op::Branch(target) if branch => {
                     ip = target;
                 },
+                Op::Branch(_) => { 
+                    ip += 1;
+                },
             }
         }
         Err(VmError::X)
