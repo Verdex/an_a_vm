@@ -40,7 +40,7 @@ struct RetAddr {
     instr : usize,
 }
 
-impl<Data> Vm<Data> {
+impl<Data : Clone> Vm<Data> {
     pub fn run(&mut self, entry : usize) -> Result<Option<Data>, VmError> {
         let mut fun_stack : Vec<RetAddr> = vec![];
         let mut ip = 0;
@@ -63,8 +63,20 @@ impl<Data> Vm<Data> {
                     fun_stack.push(RetAddr { fun: current, instr: ip + 1 });
                     current = fun_index;
                     ip = 0;
-                    self.data.push(vec![]);
-                    // TODO move params
+                    let mut new_locals = vec![];
+                    for param in params {
+                        match param { 
+                            Slot::Return => {
+                                // TODO what if ret is none
+                                new_locals.push(ret.clone().unwrap());
+                            },
+                            Slot::Local(index) => {
+                                // TODO what if local is out of index
+                                new_locals.push(self.data[self.data.len() - 1][*index].clone())
+                            },
+                        }
+                    }
+                    self.data.push(new_locals);
                 },
                 Op::ReturnSlot(ref slot) => {
                     let mut current_locals = self.data.pop().unwrap();
