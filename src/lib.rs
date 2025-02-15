@@ -1,6 +1,4 @@
 
-mod data;
-mod vm;
 
 pub enum VmError {
     X
@@ -30,10 +28,10 @@ pub struct GenericOp<Data, Unique> {
 }
 
 pub struct Vm<Data, Unique> {
-    fs : Vec<Fun>,
-    ops : Vec<GenericOp<Data, Unique>>,
-    data : Vec<Vec<Data>>,
-    unique : Vec<Unique>,
+    pub fs : Vec<Fun>,
+    pub ops : Vec<GenericOp<Data, Unique>>,
+    pub data : Vec<Vec<Data>>,
+    pub unique : Vec<Unique>,
 }
 
 struct RetAddr {
@@ -121,7 +119,6 @@ impl<Data : Clone, Unique> Vm<Data, Unique> {
                 },
             }
         }
-        Err(VmError::X)
     }
 }
 
