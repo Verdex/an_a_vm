@@ -1,8 +1,20 @@
 
 
+#[derive(Debug)]
 pub enum VmError {
     X
 }
+
+impl std::fmt::Display for VmError {
+    fn fmt(&self, _f : &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self { 
+            // ... => write!(f, "", ...)
+            _ => todo!(),
+        }
+    }
+}
+
+impl std::error::Error for VmError { }
 
 pub enum Slot { 
     Local(usize),
