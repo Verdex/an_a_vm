@@ -60,6 +60,12 @@ impl<Data : Clone, Unique> Vm<Data, Unique> {
                     (self.ops[op_index].op)(&mut self.data, &mut self.unique, &mut ret, &mut branch, params)?;
                     ip += 1;
                 },
+                Op::Branch(target) if branch => {
+                    ip = target;
+                },
+                Op::Branch(_) => { 
+                    ip += 1;
+                },
                 Op::Call(fun_index, ref params) => {
                     fun_stack.push(RetAddr { fun: current, instr: ip + 1 });
                     current = fun_index;
@@ -112,12 +118,6 @@ impl<Data : Clone, Unique> Vm<Data, Unique> {
                             ret = None;
                         },
                     }
-                },
-                Op::Branch(target) if branch => {
-                    ip = target;
-                },
-                Op::Branch(_) => { 
-                    ip += 1;
                 },
             }
         }
