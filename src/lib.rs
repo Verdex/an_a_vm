@@ -34,16 +34,16 @@ pub struct Fun {
     pub instrs : Vec<Op>,
 }
 
-pub struct GenOp<Data, Unique> {
+pub struct GenOp<T, S> {
     pub name : Box<str>,
-    pub op : fn(&mut Vec<Vec<Data>>, &mut Vec<Unique>, &mut Option<Data>, &mut bool, &Vec<Slot>) -> Result<(), VmError>,
+    pub op : fn(&mut Vec<Vec<T>>, &mut Vec<S>, &mut Option<T>, &mut bool, &Vec<Slot>) -> Result<(), VmError>,
 }
 
-pub struct Vm<Data, Unique> {
+pub struct Vm<T, S> {
     pub funs : Vec<Fun>,
-    pub ops : Vec<GenOp<Data, Unique>>,
-    pub stack : Vec<Vec<Data>>,
-    pub unique : Vec<Unique>,
+    pub ops : Vec<GenOp<T, S>>,
+    pub stack : Vec<Vec<T>>,
+    pub unique : Vec<S>,
 }
 
 struct RetAddr {
@@ -51,12 +51,12 @@ struct RetAddr {
     instr : usize,
 }
 
-impl<Data : Clone, Unique> Vm<Data, Unique> {
-    pub fn run(&mut self, entry : usize) -> Result<Option<Data>, VmError> {
+impl<T : Clone, S> Vm<T, S> {
+    pub fn run(&mut self, entry : usize) -> Result<Option<T>, VmError> {
         let mut fun_stack : Vec<RetAddr> = vec![];
         let mut ip = 0;
         let mut current = entry;
-        let mut ret : Option<Data> = None;
+        let mut ret : Option<T> = None;
         let mut branch = false;
 
         // Note:  Initial locals for entry function
