@@ -140,6 +140,46 @@ mod tests {
     use super::*;
 
     #[test]
+    fn should_call_and_return() {
+
+        let push : GenericOp<u8, u8> = GenericOp {
+            name : "push".into(),
+            op: |d, _, _, _, _ | { 
+                let l = d.len() - 1;
+                d[l].push(9);
+                Ok(())
+            },
+        };
+
+        let ret_nine = Fun {
+            name : "ret_nine".into(),
+            instrs: vec![
+                Op::Gen(0, vec![]),
+                Op::ReturnSlot(Slot::Local(0)),
+            ],
+        };
+
+        let main = Fun { 
+            name: "main".into(),
+            instrs: vec![
+                Op::Call(1, vec![]),
+                Op::ReturnSlot(Slot::Return),
+            ],
+        };
+
+        let mut vm : Vm<u8, u8> = Vm { 
+            fs: vec![main, ret_nine], 
+            ops: vec![push], 
+            data: vec![], 
+            unique: vec![] 
+        };
+
+        let data = vm.run(0).unwrap().unwrap();
+
+        assert_eq!(data, 9);
+    }
+
+    #[test]
     fn should_branch() {
         const S : usize = 0;
         const U : usize = 1;
