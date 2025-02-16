@@ -187,7 +187,56 @@ mod tests {
             },
         }
     }
+
+    fn gen_push_return<T : Copy, S>() -> GenOp<T, S> {
+        GenOp { 
+            name: "push_return".into(),
+            op: | d, _, ret, _, _ | {
+                let v = ret.unwrap();
+                d.last_mut().unwrap().push(v);
+                Ok(())
+            },
+        }
+    }
     
+    #[test]
+    fn should_call_with_params() {
+        let push = gen_push_unique();
+        let add = gen_add();
+        let push_ret = gen_push_return();
+
+        let add_up = Fun { 
+            name: "add_up".into(),
+            instrs: vec![
+                Op::Gen(1, vec![Slot::Local(0), Slot::Local(1)]),
+                Op::Gen(2, vec![]),
+                Op::Gen(1, vec![Slot::Local(2), Slot::Local(3)]),
+                Op::ReturnSlot(Slot::Return),
+            ],
+        };
+
+        let main = Fun { 
+            name: "main".into(),
+            instrs: vec![
+                Op::Gen(0, vec![Slot::Local(0)]),
+                Op::Gen(0, vec![Slot::Local(1)]),
+                Op::Gen(0, vec![Slot::Local(2)]),
+                Op::Call(1, vec![Slot::Local(0), Slot::Local(1), Slot::Local(2)]),
+                Op::ReturnSlot(Slot::Return),
+            ],
+        };
+
+        let mut vm : Vm<u8, u8> = Vm::new(
+            vec![main, add_up], 
+            vec![push, add, push_ret]);
+
+        vm.with_unique(vec![2, 3, 5]);
+
+        let data = vm.run(0).unwrap().unwrap();
+
+        assert_eq!(data, 10);
+    }
+
     #[test]
     fn should_call_and_return() {
 
