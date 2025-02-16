@@ -175,12 +175,7 @@ mod tests {
             ],
         };
 
-        let mut vm : Vm<u8, u8> = Vm { 
-            fs: vec![main, ret_nine], 
-            ops: vec![push], 
-            data: vec![], 
-            unique: vec![] 
-        };
+        let mut vm : Vm<u8, u8> = Vm::new(vec![main, ret_nine], vec![push]);
 
         let data = vm.run(0).unwrap().unwrap();
 
@@ -203,7 +198,7 @@ mod tests {
             op: |_, _, _, b, _| { *b = false; Ok(()) },
         };
 
-        let push_stack : GeneOp<u8, u8> = GenOp {
+        let push_stack : GenOp<u8, u8> = GenOp {
             name : "push".into(),
             op: |d, _, _, _, ps | { 
                 let l = d.len() - 1;
@@ -235,12 +230,7 @@ mod tests {
             ],
         };
 
-        let mut vm : Vm<u8, u8> = Vm { 
-            fs: vec![main], 
-            ops: vec![set_branch, unset_branch, push_stack], 
-            data: vec![], 
-            unique: vec![] 
-        };
+        let mut vm : Vm<u8, u8> = Vm::new(vec![main], vec![set_branch, unset_branch, push_stack]);
 
         let data = vm.run(0).unwrap().unwrap();
 
