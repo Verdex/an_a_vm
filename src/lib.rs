@@ -226,7 +226,6 @@ mod tests {
     }
     
     // TODO
-    // return 
     // function keeps locals after fun call (fib)
 
     #[test]
