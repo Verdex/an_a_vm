@@ -217,6 +217,42 @@ mod tests {
     // return 
     // function keeps locals after fun call (fib)
 
+    #[test]
+    fn should_order_params() {
+        let push = gen_push_unique();
+        let bz = gen_set_branch_on_zero();
+
+        let other = Fun { 
+            name: "other".into(),
+            instrs: vec![
+                Op::Gen(1, vec![Slot::Local(2)]),
+                Op::Branch(3),
+                Op::ReturnSlot(Slot::Local(0)),
+                Op::ReturnSlot(Slot::Local(1)),
+            ],
+        };
+
+        let main = Fun { 
+            name: "main".into(),
+            instrs: vec![
+                Op::Gen(0, vec![Slot::Local(0)]),
+                Op::Gen(0, vec![Slot::Local(1)]),
+                Op::Gen(0, vec![Slot::Local(2)]),
+                Op::Call(1, vec![Slot::Local(2), Slot::Local(1), Slot::Local(0)]), // other(5, 3, 0)
+                Op::ReturnSlot(Slot::Return),
+            ],
+        };
+
+        let mut vm : Vm<u8, u8> = Vm::new(
+            vec![main, other], 
+            vec![push, bz]);
+
+        vm.with_unique(vec![0, 3, 5]);
+
+        let data = vm.run(0).unwrap().unwrap();
+
+        assert_eq!(data, 3);
+    }
     
     #[test]
     fn should_call_with_params() {
