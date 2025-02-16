@@ -34,14 +34,14 @@ pub struct Fun {
     pub instrs : Vec<Op>,
 }
 
-pub struct GenericOp<Data, Unique> {
+pub struct GenOp<Data, Unique> {
     pub name : Box<str>,
     pub op : fn(&mut Vec<Vec<Data>>, &mut Vec<Unique>, &mut Option<Data>, &mut bool, &Vec<Slot>) -> Result<(), VmError>,
 }
 
 pub struct Vm<Data, Unique> {
     pub funs : Vec<Fun>,
-    pub ops : Vec<GenericOp<Data, Unique>>,
+    pub ops : Vec<GenOp<Data, Unique>>,
     pub stack : Vec<Vec<Data>>,
     pub unique : Vec<Unique>,
 }
@@ -142,7 +142,7 @@ mod tests {
     #[test]
     fn should_call_and_return() {
 
-        let push : GenericOp<u8, u8> = GenericOp {
+        let push : GenOp<u8, u8> = GenOp {
             name : "push".into(),
             op: |d, _, _, _, _ | { 
                 let l = d.len() - 1;
@@ -185,17 +185,17 @@ mod tests {
         const U : usize = 1;
         const P : usize = 2;
 
-        let set_branch: GenericOp<u8, u8> = GenericOp {
+        let set_branch: GenOp<u8, u8> = GenOp {
             name: "set".into(),
             op: |_, _, _, b, _| { *b = true; Ok(()) },
         };
 
-        let unset_branch: GenericOp<u8, u8> = GenericOp {
+        let unset_branch: GenOp<u8, u8> = GenOp {
             name: "unset".into(),
             op: |_, _, _, b, _| { *b = false; Ok(()) },
         };
 
-        let push_stack : GenericOp<u8, u8> = GenericOp {
+        let push_stack : GeneOp<u8, u8> = GenOp {
             name : "push".into(),
             op: |d, _, _, _, ps | { 
                 let l = d.len() - 1;
