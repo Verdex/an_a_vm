@@ -187,6 +187,19 @@ mod tests {
         }
     }
 
+    fn gen_push_into_unique<T : Copy>() -> GenOp<T, T> {
+        GenOp {
+            name: "push unique".into(),
+            op: |d, u, _, _, params| { 
+                if let [Slot::Local(s)] = &params[..] {
+                    let v = d.last().unwrap()[*s];
+                    u.push(v);
+                }
+                Ok(())
+            },
+        }
+    }
+
     fn gen_add<S>() -> GenOp<u8, S> {
         GenOp {
             name: "add".into(),
@@ -213,9 +226,52 @@ mod tests {
     }
     
     // TODO
-    // order of params
     // return 
     // function keeps locals after fun call (fib)
+
+    #[test]
+    fn should_return() {
+        const INTO_U : usize = 0;
+        const FROM_U : usize = 1;
+        const ADD : usize = 2;
+        const FROM_R : usize = 3;
+
+        let push_from_unique = gen_push_unique();
+        let push_into_unique = gen_push_into_unique();
+        let add = gen_add();
+        let push_ret = gen_push_return();
+
+        let other = Fun { 
+            name: "other".into(),
+            instrs: vec![
+                Op::Gen(ADD, vec![Slot::Local(0), Slot::Local(1)]),
+                Op::Gen(FROM_R, vec![]),
+                Op::Gen(INTO_U, vec![Slot::Local(2)]),
+                Op::Return,
+            ],
+        };
+
+        let main = Fun { 
+            name: "main".into(),
+            instrs: vec![
+                Op::Gen(FROM_U, vec![Slot::Local(1)]),
+                Op::Gen(FROM_U, vec![Slot::Local(2)]),
+                Op::Call(1, vec![Slot::Local(1), Slot::Local(2)]),
+                Op::Gen(FROM_U, vec![Slot::Local(3)]), // from unique slot 3
+                Op::ReturnSlot(Slot::Local(3)), // from stack slot 3
+            ],
+        };
+
+        let mut vm : Vm<u8, u8> = Vm::new(
+            vec![main, other], 
+            vec![push_into_unique, push_from_unique, add, push_ret]);
+
+        vm.with_unique(vec![0, 3, 5]);
+
+        let data = vm.run(0).unwrap().unwrap();
+
+        assert_eq!(data, 8);
+    }
 
     #[test]
     fn should_order_params() {
