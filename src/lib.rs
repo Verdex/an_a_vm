@@ -147,6 +147,21 @@ impl<T : Clone, S> Vm<T, S> {
 mod tests {
     use super::*;
 
+    fn gen_set_branch<T, S>() -> GenOp<T, S> {
+        GenOp {
+            name: "set".into(),
+            op: |_, _, _, b, _| { *b = true; Ok(()) },
+        }
+    }
+
+    fn gen_unset_branch<T, S>() -> GenOp<T, S> {
+        GenOp {
+            name: "unset".into(),
+            op: |_, _, _, b, _| { *b = false; Ok(()) },
+        }
+    }
+    
+
     #[test]
     fn should_call_and_return() {
 
@@ -188,15 +203,8 @@ mod tests {
         const U : usize = 1;
         const P : usize = 2;
 
-        let set_branch: GenOp<u8, u8> = GenOp {
-            name: "set".into(),
-            op: |_, _, _, b, _| { *b = true; Ok(()) },
-        };
-
-        let unset_branch: GenOp<u8, u8> = GenOp {
-            name: "unset".into(),
-            op: |_, _, _, b, _| { *b = false; Ok(()) },
-        };
+        let set_branch: GenOp<u8, u8> = gen_set_branch();
+        let unset_branch: GenOp<u8, u8> = gen_unset_branch();
 
         let push_stack : GenOp<u8, u8> = GenOp {
             name : "push".into(),
@@ -236,5 +244,4 @@ mod tests {
 
         assert_eq!(data, 1);
     }
-
 }
