@@ -160,8 +160,34 @@ mod tests {
             op: |_, _, _, b, _| { *b = false; Ok(()) },
         }
     }
-    
 
+    fn gen_push_unique<T : Copy>() -> GenOp<T, T> {
+        GenOp {
+            name: "push unique".into(),
+            op: |d, u, _, _, params| { 
+                if let [Slot::Local(s)] = &params[..] {
+                    let v = u[*s];
+                    d.last_mut().unwrap().push(v);
+                }
+                Ok(())
+            },
+        }
+    }
+
+    fn gen_add<S>() -> GenOp<u8, S> {
+        GenOp {
+            name: "add".into(),
+            op: | d, _, ret, _, params |  { 
+                if let [Slot::Local(s1), Slot::Local(s2)] = &params[..] {
+                    let a = &d.last().unwrap()[*s1];
+                    let b = &d.last().unwrap()[*s2];
+                    *ret = Some(*a + *b);
+                }
+                Ok(())
+            },
+        }
+    }
+    
     #[test]
     fn should_call_and_return() {
 
