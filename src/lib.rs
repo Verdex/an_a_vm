@@ -161,6 +161,19 @@ mod tests {
         }
     }
 
+    fn gen_set_branch_on_zero<S>() -> GenOp<u8, S> {
+        GenOp {
+            name: "bz".into(),
+            op: |d, _, _, b, params| { 
+                if let [Slot::Local(s)] = &params[..] {
+                    let v = d.last().unwrap()[*s];
+                    *b = v == 0;
+                }
+                Ok(()) 
+            },
+        }
+    }
+
     fn gen_push_unique<T : Copy>() -> GenOp<T, T> {
         GenOp {
             name: "push unique".into(),
