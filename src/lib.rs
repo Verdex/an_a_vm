@@ -256,9 +256,9 @@ mod tests {
             instrs: vec![
                 Op::Gen(FROM_U, vec![Slot::Local(1)]),
                 Op::Gen(FROM_U, vec![Slot::Local(2)]),
-                Op::Call(1, vec![Slot::Local(1), Slot::Local(2)]),
+                Op::Call(1, vec![Slot::Local(0), Slot::Local(1)]),
                 Op::Gen(FROM_U, vec![Slot::Local(3)]), // from unique slot 3
-                Op::ReturnSlot(Slot::Local(3)), // from stack slot 3
+                Op::ReturnSlot(Slot::Local(2)), // from stack slot 2
             ],
         };
 
