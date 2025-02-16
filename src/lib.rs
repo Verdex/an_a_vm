@@ -40,9 +40,9 @@ pub struct GenericOp<Data, Unique> {
 }
 
 pub struct Vm<Data, Unique> {
-    pub fs : Vec<Fun>,
+    pub funs : Vec<Fun>,
     pub ops : Vec<GenericOp<Data, Unique>>,
-    pub data : Vec<Vec<Data>>,
+    pub stack : Vec<Vec<Data>>,
     pub unique : Vec<Unique>,
 }
 
@@ -60,14 +60,14 @@ impl<Data : Clone, Unique> Vm<Data, Unique> {
         let mut branch = false;
 
         // Note:  Initial locals for entry function
-        self.data.push(vec![]);
+        self.stack.push(vec![]);
         loop {
             // TODO what if current does not exist
             // TODO what if ip does not exist
-            match self.fs[current].instrs[ip] {
+            match self.funs[current].instrs[ip] {
                 Op::Gen(op_index, ref params) => {
                     // TODO what if op_index does not exist
-                    (self.ops[op_index].op)(&mut self.data, &mut self.unique, &mut ret, &mut branch, params)?;
+                    (self.ops[op_index].op)(&mut self.stack, &mut self.unique, &mut ret, &mut branch, params)?;
                     ip += 1;
                 },
                 Op::Branch(target) if branch => {
@@ -89,14 +89,14 @@ impl<Data : Clone, Unique> Vm<Data, Unique> {
                             },
                             Slot::Local(index) => {
                                 // TODO what if local is out of index
-                                new_locals.push(self.data[self.data.len() - 1][*index].clone())
+                                new_locals.push(self.stack[self.stack.len() - 1][*index].clone())
                             },
                         }
                     }
-                    self.data.push(new_locals);
+                    self.stack.push(new_locals);
                 },
                 Op::ReturnSlot(ref slot) => {
-                    let mut current_locals = self.data.pop().unwrap();
+                    let mut current_locals = self.stack.pop().unwrap();
 
                     let ret_target = match slot {
                         Slot::Local(index) => current_locals.swap_remove(*index), // TODO what if this isn't something
@@ -122,7 +122,7 @@ impl<Data : Clone, Unique> Vm<Data, Unique> {
                             return Ok(None);
                         },
                         Some(ret_addr) => {
-                            self.data.pop();
+                            self.stack.pop();
                             current = ret_addr.fun;
                             ip = ret_addr.instr;
                             ret = None;
