@@ -189,11 +189,38 @@ mod tests {
 
     fn gen_push_into_unique<T : Copy>() -> GenOp<T, T> {
         GenOp {
-            name: "push unique".into(),
+            name: "push into unique".into(),
             op: |d, u, _, _, params| { 
                 if let [Slot::Local(s)] = &params[..] {
                     let v = d.last().unwrap()[*s];
                     u.push(v);
+                }
+                Ok(())
+            },
+        }
+    }
+
+    fn gen_dec<S>() -> GenOp<u8, S> {
+        GenOp {
+            name: "mul".into(),
+            op: | d, _, ret, _, params |  { 
+                if let [Slot::Local(s)] = &params[..] {
+                    let a = &d.last().unwrap()[*s];
+                    *ret = Some(a - 1);
+                }
+                Ok(())
+            },
+        }
+    }
+
+    fn gen_mul<S>() -> GenOp<u8, S> {
+        GenOp {
+            name: "mul".into(),
+            op: | d, _, ret, _, params |  { 
+                if let [Slot::Local(s1), Slot::Local(s2)] = &params[..] {
+                    let a = &d.last().unwrap()[*s1];
+                    let b = &d.last().unwrap()[*s2];
+                    *ret = Some(*a * *b);
                 }
                 Ok(())
             },
@@ -225,8 +252,54 @@ mod tests {
         }
     }
     
-    // TODO
-    // function keeps locals after fun call (fib)
+    #[test]
+    fn should_handle_multiple_calls() {
+        const MUL : usize = 0;
+        const PUSH_FROM_UNIQUE : usize = 1;
+        const PUSH_FROM_RETURN : usize = 2;
+        const BZ : usize = 3;
+        const DEC : usize = 4;
+
+        let mul = gen_mul();
+        let push_from_unique = gen_push_unique();
+        let push_from_return = gen_push_return();
+        let bz = gen_set_branch_on_zero();
+        let dec = gen_dec();
+
+        let factorial = Fun { 
+            name: "fact".into(),
+            instrs: vec![
+                Op::Gen(DEC, vec![Slot::Local(0)]),
+                Op::Gen(PUSH_FROM_RETURN, vec![]),
+                Op::Gen(BZ, vec![Slot::Local(1)]),
+                Op::Branch(8),
+                Op::Call(1, vec![Slot::Local(1)]),
+                Op::Gen(PUSH_FROM_RETURN, vec![]),
+                Op::Gen(MUL, vec![Slot::Local(0), Slot::Local(2)]),
+                Op::ReturnSlot(Slot::Return),
+                Op::ReturnSlot(Slot::Local(0)),
+            ],
+        };
+
+        let main = Fun { 
+            name: "main".into(),
+            instrs: vec![
+                Op::Gen(PUSH_FROM_UNIQUE, vec![Slot::Local(0)]),
+                Op::Call(1, vec![Slot::Local(0)]),
+                Op::ReturnSlot(Slot::Return),
+            ],
+        };
+
+        let mut vm : Vm<u8, u8> = Vm::new(
+            vec![main, factorial], 
+            vec![mul, push_from_unique, push_from_return, bz, dec]);
+
+        vm.with_unique(vec![5]);
+
+        let data = vm.run(0).unwrap().unwrap();
+
+        assert_eq!(data, 120);
+    }
 
     #[test]
     fn should_return() {
