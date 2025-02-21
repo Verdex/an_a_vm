@@ -1,15 +1,21 @@
 
 
+pub type StackTrace = Vec<(Box<str>, usize)>;
+
 #[derive(Debug)]
 pub enum VmError {
-    X
+    FunDoesNotExist(usize, StackTrace),
 }
 
 impl std::fmt::Display for VmError {
-    fn fmt(&self, _f : &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f : &mut std::fmt::Formatter) -> std::fmt::Result {
+        fn d(x : &StackTrace) -> String {
+            x.into_iter().map(|(n, i)| format!("    {} at index {}\n", n, i)).collect()
+        }
+
         match self { 
-            // ... => write!(f, "", ...)
-            _ => todo!(),
+            VmError::FunDoesNotExist(fun_index, trace) => 
+                write!(f, "Fun Index {} does not exist: \n{}", fun_index, d(trace)),
         }
     }
 }
@@ -142,7 +148,7 @@ impl<T : Clone, S> Vm<T, S> {
     }
 }
 
-fn stack_trace(stack : &[RetAddr], fun_map : &[Fun]) -> Vec<(Box<str>, usize)> {
+fn stack_trace(stack : &[RetAddr], fun_map : &[Fun]) -> StackTrace {
     let mut trace = vec![];
     for addr in stack {
         // Note:  if the function was already pushed into the stack, then
