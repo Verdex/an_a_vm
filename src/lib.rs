@@ -6,6 +6,7 @@ pub type StackTrace = Vec<(Box<str>, usize)>;
 pub enum VmError {
     FunDoesNotExist(usize, StackTrace),
     InstrPointerOutOfRange(usize, StackTrace),
+    GenOpDoesNotExist(usize, StackTrace),
 }
 
 impl std::fmt::Display for VmError {
@@ -19,6 +20,7 @@ impl std::fmt::Display for VmError {
                 write!(f, "Fun Index {} does not exist: \n{}", fun_index, d(trace)),
             VmError::InstrPointerOutOfRange(instr, trace) => 
                 write!(f, "Instr Index {} does not exist: \n{}", instr, d(trace)),
+            _ => todo!()
         }
     }
 }
@@ -91,10 +93,14 @@ impl<T : Clone, S> Vm<T, S> {
             }
 
             match self.funs[current].instrs[ip] {
-                Op::Gen(op_index, ref params) => {
+                Op::Gen(op_index, ref params) if op_index < self.ops.len() => {
                     // TODO what if op_index does not exist
+                    // TODO attach stack trace to output instead of ? (probably need to make gen op output dyn error)
                     (self.ops[op_index].op)(&mut self.stack, &mut self.unique, &mut ret, &mut branch, params)?;
                     ip += 1;
+                },
+                Op::Gen(op_index, _) => {
+                    todo!()
                 },
                 Op::Branch(target) if branch => {
                     ip = target;
