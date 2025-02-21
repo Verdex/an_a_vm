@@ -5,6 +5,7 @@ pub type StackTrace = Vec<(Box<str>, usize)>;
 #[derive(Debug)]
 pub enum VmError {
     FunDoesNotExist(usize, StackTrace),
+    InstrPointerOutOfRange(usize, StackTrace),
 }
 
 impl std::fmt::Display for VmError {
@@ -16,6 +17,8 @@ impl std::fmt::Display for VmError {
         match self { 
             VmError::FunDoesNotExist(fun_index, trace) => 
                 write!(f, "Fun Index {} does not exist: \n{}", fun_index, d(trace)),
+            VmError::InstrPointerOutOfRange(instr, trace) => 
+                write!(f, "Instr Index {} does not exist: \n{}", instr, d(trace)),
         }
     }
 }
@@ -68,16 +71,25 @@ impl<T : Clone, S> Vm<T, S> {
 
     pub fn run(&mut self, entry : usize) -> Result<Option<T>, VmError> {
         let mut fun_stack : Vec<RetAddr> = vec![];
-        let mut ip = 0;
-        let mut current = entry;
+        let mut ip : usize = 0;
+        let mut current : usize = entry;
         let mut ret : Option<T> = None;
-        let mut branch = false;
+        let mut branch : bool = false;
 
         // Note:  Initial locals for entry function
         self.stack.push(vec![]);
         loop {
-            // TODO what if current does not exist
-            // TODO what if ip does not exist
+            if current >= self.funs.len() {
+                return Err(VmError::FunDoesNotExist(current, stack_trace(&fun_stack, &self.funs)));
+            }
+
+            if ip >= self.funs[current].instrs.len() {
+                // Note:  if the current function isn't pushed onto the return stack, then the
+                // stack trace will leave out the current function where the problem is occurring.
+                fun_stack.push(RetAddr { fun: current, instr: ip });
+                return Err(VmError::InstrPointerOutOfRange(ip, stack_trace(&fun_stack, &self.funs)));
+            }
+
             match self.funs[current].instrs[ip] {
                 Op::Gen(op_index, ref params) => {
                     // TODO what if op_index does not exist
