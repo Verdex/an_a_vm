@@ -142,6 +142,17 @@ impl<T : Clone, S> Vm<T, S> {
     }
 }
 
+fn stack_trace(stack : &[RetAddr], fun_map : &[Fun]) -> Vec<(Box<str>, usize)> {
+    let mut trace = vec![];
+    for addr in stack {
+        // Note:  if the function was already pushed into the stack, then
+        // that means that it already resolved to a known function.  Don't
+        // have to check again that the fun map has it.
+        let name = fun_map[addr.fun].name.clone();
+        trace.push((name, addr.instr));
+    }
+    trace
+}
 
 #[cfg(test)]
 mod tests {
