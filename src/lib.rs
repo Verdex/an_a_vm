@@ -69,7 +69,6 @@ pub struct GenOp<T, S> {
 pub struct Vm<T, S> {
     funs : Vec<Fun>,
     ops : Vec<GenOp<T, S>>,
-    stack : Vec<Vec<T>>,
     unique : Vec<S>,
 }
 
@@ -80,7 +79,7 @@ struct RetAddr {
 
 impl<T : Clone, S> Vm<T, S> {
     pub fn new(funs : Vec<Fun>, ops : Vec<GenOp<T, S>>) -> Self {
-        Vm { funs, ops, stack: vec![], unique: vec![] }
+        Vm { funs, ops, unique: vec![] }
     }
 
     pub fn with_unique(&mut self, unique : Vec<S>) -> Vec<S> {
@@ -89,13 +88,14 @@ impl<T : Clone, S> Vm<T, S> {
 
     pub fn run(&mut self, entry : usize) -> Result<Option<T>, VmError> {
         let mut fun_stack : Vec<RetAddr> = vec![];
+        let mut data_stack : Vec<Vec<T>> = vec![];
         let mut ip : usize = 0;
         let mut current : usize = entry;
         let mut ret : Option<T> = None;
         let mut branch : bool = false;
 
         // Note:  Initial locals for entry function
-        self.stack.push(vec![]);
+        data_stack.push(vec![]);
         loop {
             if current >= self.funs.len() {
                 return Err(VmError::FunDoesNotExist(current, stack_trace(&fun_stack, &self.funs)));
@@ -110,7 +110,7 @@ impl<T : Clone, S> Vm<T, S> {
 
             match self.funs[current].instrs[ip] {
                 Op::Gen(op_index, ref params) if op_index < self.ops.len() => {
-                    match (self.ops[op_index].op)(&mut self.stack, &mut self.unique, &mut ret, &mut branch, params) {
+                    match (self.ops[op_index].op)(&mut data_stack, &mut self.unique, &mut ret, &mut branch, params) {
                         Ok(()) => { },
                         Err(e) => { 
                             let name = self.ops[op_index].name.clone();
@@ -148,19 +148,19 @@ impl<T : Clone, S> Vm<T, S> {
                                 }
                             },
                             Slot::Local(index) => {
-                                if *index >= self.stack[self.stack.len() - 1].len() {
+                                if *index >= data_stack[data_stack.len() - 1].len() {
                                     fun_stack.push(RetAddr{ fun: current, instr: ip });
                                     return Err(VmError::CallAccessMissingLocal(*index, stack_trace(&fun_stack, &self.funs)));
                                 }
 
-                                new_locals.push(self.stack[self.stack.len() - 1][*index].clone())
+                                new_locals.push(data_stack[data_stack.len() - 1][*index].clone())
                             },
                         }
                     }
-                    self.stack.push(new_locals);
+                    data_stack.push(new_locals);
                 },
                 Op::ReturnSlot(ref slot) => {
-                    let mut current_locals = self.stack.pop().unwrap();
+                    let mut current_locals = data_stack.pop().unwrap();
 
                     let ret_target = match slot {
                         Slot::Local(index) => {
@@ -201,7 +201,7 @@ impl<T : Clone, S> Vm<T, S> {
                             return Ok(None);
                         },
                         Some(ret_addr) => {
-                            self.stack.pop();
+                            data_stack.pop();
                             current = ret_addr.fun;
                             ip = ret_addr.instr;
                             ret = None;
