@@ -94,7 +94,6 @@ impl<T : Clone, S> Vm<T, S> {
 
             match self.funs[current].instrs[ip] {
                 Op::Gen(op_index, ref params) if op_index < self.ops.len() => {
-                    // TODO what if op_index does not exist
                     // TODO attach stack trace to output instead of ? (probably need to make gen op output dyn error)
                     (self.ops[op_index].op)(&mut self.stack, &mut self.unique, &mut ret, &mut branch, params)?;
                     ip += 1;
