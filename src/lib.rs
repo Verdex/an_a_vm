@@ -7,6 +7,8 @@ pub enum VmError {
     FunDoesNotExist(usize, StackTrace),
     InstrPointerOutOfRange(usize, StackTrace),
     GenOpDoesNotExist(usize, StackTrace),
+    CallAccessMissingReturn(StackTrace),
+    CallAccessMissingLocal(usize, StackTrace),
 }
 
 impl std::fmt::Display for VmError {
@@ -22,6 +24,10 @@ impl std::fmt::Display for VmError {
                 write!(f, "Instr Index {} does not exist: \n{}", instr, d(trace)),
             VmError::GenOpDoesNotExist(op_index, trace) => 
                 write!(f, "GenOp {} does not exist: \n{}", op_index, d(trace)),
+            VmError::CallAccessMissingReturn(trace) => 
+                write!(f, "Call attempting to access missing return: \n{}", d(trace)),
+            VmError::CallAccessMissingLocal(local, trace) => 
+                write!(f, "Call attempting to access missing local {}: \n{}", local, d(trace)),
         }
     }
 }
@@ -118,11 +124,20 @@ impl<T : Clone, S> Vm<T, S> {
                     for param in params {
                         match param { 
                             Slot::Return => {
-                                // TODO what if ret is none
-                                new_locals.push(ret.clone().unwrap());
+                                match ret {
+                                    Some(ref v) => { new_locals.push(v.clone()); },
+                                    None => {
+                                        fun_stack.push(RetAddr{ fun: current, instr: ip });
+                                        return Err(VmError::CallAccessMissingReturn(stack_trace(&fun_stack, &self.funs)));
+                                    },
+                                }
                             },
                             Slot::Local(index) => {
-                                // TODO what if local is out of index
+                                if *index >= self.stack[self.stack.len() - 1].len() {
+                                    fun_stack.push(RetAddr{ fun: current, instr: ip });
+                                    return Err(VmError::CallAccessMissingLocal(*index, stack_trace(&fun_stack, &self.funs)));
+                                }
+
                                 new_locals.push(self.stack[self.stack.len() - 1][*index].clone())
                             },
                         }
