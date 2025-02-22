@@ -11,6 +11,7 @@ pub enum VmError {
     CallAccessMissingLocal(usize, StackTrace),
     ReturnAccessMissingReturn(StackTrace),
     ReturnAccessMissingLocal(usize, StackTrace),
+    GenOpError(Box<str>, Box<dyn std::error::Error>, StackTrace),
 }
 
 impl std::fmt::Display for VmError {
@@ -34,6 +35,8 @@ impl std::fmt::Display for VmError {
                 write!(f, "Return attempting to access missing return: \n{}", d(trace)),
             VmError::ReturnAccessMissingLocal(local, trace) => 
                 write!(f, "Return attempting to access missing local {}: \n{}", local, d(trace)),
+            VmError::GenOpError(name, error, trace) => 
+                write!(f, "GenOp {} encountered error {}: \n{}", name, error, d(trace)),
         }
     }
 }
@@ -60,7 +63,7 @@ pub struct Fun {
 
 pub struct GenOp<T, S> {
     pub name : Box<str>,
-    pub op : fn(&mut Vec<Vec<T>>, &mut Vec<S>, &mut Option<T>, &mut bool, &Vec<Slot>) -> Result<(), VmError>,
+    pub op : fn(&mut Vec<Vec<T>>, &mut Vec<S>, &mut Option<T>, &mut bool, &Vec<Slot>) -> Result<(), Box<dyn std::error::Error>>,
 }
 
 pub struct Vm<T, S> {
@@ -107,8 +110,14 @@ impl<T : Clone, S> Vm<T, S> {
 
             match self.funs[current].instrs[ip] {
                 Op::Gen(op_index, ref params) if op_index < self.ops.len() => {
-                    // TODO attach stack trace to output instead of ? (probably need to make gen op output dyn error)
-                    (self.ops[op_index].op)(&mut self.stack, &mut self.unique, &mut ret, &mut branch, params)?;
+                    match (self.ops[op_index].op)(&mut self.stack, &mut self.unique, &mut ret, &mut branch, params) {
+                        Ok(()) => { },
+                        Err(e) => { 
+                            let name = self.ops[op_index].name.clone();
+                            fun_stack.push(RetAddr { fun: current, instr: ip });
+                            return Err(VmError::GenOpError(name, e, stack_trace(&fun_stack, &self.funs))); 
+                        }
+                    }
                     ip += 1;
                 },
                 Op::Gen(op_index, _) => {
