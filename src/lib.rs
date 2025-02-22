@@ -9,6 +9,8 @@ pub enum VmError {
     GenOpDoesNotExist(usize, StackTrace),
     CallAccessMissingReturn(StackTrace),
     CallAccessMissingLocal(usize, StackTrace),
+    ReturnAccessMissingReturn(StackTrace),
+    ReturnAccessMissingLocal(usize, StackTrace),
 }
 
 impl std::fmt::Display for VmError {
@@ -28,6 +30,10 @@ impl std::fmt::Display for VmError {
                 write!(f, "Call attempting to access missing return: \n{}", d(trace)),
             VmError::CallAccessMissingLocal(local, trace) => 
                 write!(f, "Call attempting to access missing local {}: \n{}", local, d(trace)),
+            VmError::ReturnAccessMissingReturn(trace) => 
+                write!(f, "Return attempting to access missing return: \n{}", d(trace)),
+            VmError::ReturnAccessMissingLocal(local, trace) => 
+                write!(f, "Return attempting to access missing local {}: \n{}", local, d(trace)),
         }
     }
 }
@@ -148,8 +154,23 @@ impl<T : Clone, S> Vm<T, S> {
                     let mut current_locals = self.stack.pop().unwrap();
 
                     let ret_target = match slot {
-                        Slot::Local(index) => current_locals.swap_remove(*index), // TODO what if this isn't something
-                        Slot::Return => ret.unwrap(), // TODO what if this isn't something
+                        Slot::Local(index) => {
+                            if *index >= current_locals.len() {
+                                fun_stack.push(RetAddr{ fun: current, instr: ip });
+                                return Err(VmError::ReturnAccessMissingLocal(*index, stack_trace(&fun_stack, &self.funs)));
+                            }
+
+                            current_locals.swap_remove(*index)
+                        }, 
+                        Slot::Return => {
+                            match ret {
+                                Some(v) => v,
+                                None => {
+                                    fun_stack.push(RetAddr{ fun: current, instr: ip });
+                                    return Err(VmError::ReturnAccessMissingReturn(stack_trace(&fun_stack, &self.funs)));
+                                },
+                            }
+                        }, 
                     };
 
                     match fun_stack.pop() {
