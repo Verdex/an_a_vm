@@ -20,7 +20,8 @@ impl std::fmt::Display for VmError {
                 write!(f, "Fun Index {} does not exist: \n{}", fun_index, d(trace)),
             VmError::InstrPointerOutOfRange(instr, trace) => 
                 write!(f, "Instr Index {} does not exist: \n{}", instr, d(trace)),
-            _ => todo!()
+            VmError::GenOpDoesNotExist(op_index, trace) => 
+                write!(f, "GenOp {} does not exist: \n{}", op_index, d(trace)),
         }
     }
 }
