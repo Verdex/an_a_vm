@@ -100,7 +100,9 @@ impl<T : Clone, S> Vm<T, S> {
                     ip += 1;
                 },
                 Op::Gen(op_index, _) => {
-                    todo!()
+                    // Note:  Indicate current function for stack trace.
+                    fun_stack.push(RetAddr { fun: current, instr: ip });
+                    return Err(VmError::GenOpDoesNotExist(op_index, stack_trace(&fun_stack, &self.funs)));
                 },
                 Op::Branch(target) if branch => {
                     ip = target;
