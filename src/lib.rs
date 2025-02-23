@@ -80,7 +80,7 @@ pub struct GenOp<T, S> {
 pub struct Vm<T, S> {
     funs : Vec<Fun>,
     ops : Vec<GenOp<T, S>>,
-    unique : Vec<S>,
+    globals: Vec<S>,
 }
 
 struct RetAddr {
@@ -90,11 +90,11 @@ struct RetAddr {
 
 impl<T : Clone, S> Vm<T, S> {
     pub fn new(funs : Vec<Fun>, ops : Vec<GenOp<T, S>>) -> Self {
-        Vm { funs, ops, unique: vec![] }
+        Vm { funs, ops, globals: vec![] }
     }
 
-    pub fn with_unique(&mut self, unique : Vec<S>) -> Vec<S> { // todo with globals
-        std::mem::replace(&mut self.unique, unique)
+    pub fn with_globals(&mut self, globals: Vec<S>) -> Vec<S> { 
+        std::mem::replace(&mut self.globals, globals)
     }
 
     pub fn run(&mut self, entry : usize) -> Result<Option<T>, VmError> {
