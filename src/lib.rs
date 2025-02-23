@@ -273,9 +273,9 @@ mod tests {
         }
     }
 
-    fn gen_push_unique<T : Copy>() -> GenOp<T, T> {
+    fn gen_push_global<T : Copy>() -> GenOp<T, T> {
         GenOp {
-            name: "push unique".into(),
+            name: "push global".into(),
             op: |env, params| { 
                 if let [Slot::Local(s)] = &params[..] {
                     let v = env.globals[*s];
@@ -286,9 +286,9 @@ mod tests {
         }
     }
 
-    fn gen_push_into_unique<T : Copy>() -> GenOp<T, T> {
+    fn gen_push_into_global<T : Copy>() -> GenOp<T, T> {
         GenOp {
-            name: "push into unique".into(),
+            name: "push into global".into(),
             op: |env, params| { 
                 if let [Slot::Local(s)] = &params[..] {
                     let v = env.locals.last().unwrap()[*s];
@@ -354,13 +354,13 @@ mod tests {
     #[test]
     fn should_handle_multiple_calls() {
         const MUL : usize = 0;
-        const PUSH_FROM_UNIQUE : usize = 1;
+        const PUSH_FROM_GLOBAL : usize = 1;
         const PUSH_FROM_RETURN : usize = 2;
         const BZ : usize = 3;
         const DEC : usize = 4;
 
         let mul = gen_mul();
-        let push_from_unique = gen_push_unique();
+        let push_from_global = gen_push_global();
         let push_from_return = gen_push_return();
         let bz = gen_set_branch_on_zero();
         let dec = gen_dec();
@@ -383,7 +383,7 @@ mod tests {
         let main = Fun { 
             name: "main".into(),
             instrs: vec![
-                Op::Gen(PUSH_FROM_UNIQUE, vec![Slot::Local(0)]),
+                Op::Gen(PUSH_FROM_GLOBAL, vec![Slot::Local(0)]),
                 Op::Call(1, vec![Slot::Local(0)]),
                 Op::ReturnSlot(Slot::Return),
             ],
@@ -391,9 +391,9 @@ mod tests {
 
         let mut vm : Vm<u8, u8> = Vm::new(
             vec![main, factorial], 
-            vec![mul, push_from_unique, push_from_return, bz, dec]);
+            vec![mul, push_from_global, push_from_return, bz, dec]);
 
-        vm.with_unique(vec![5]);
+        vm.with_globals(vec![5]);
 
         let data = vm.run(0).unwrap().unwrap();
 
@@ -402,13 +402,13 @@ mod tests {
 
     #[test]
     fn should_return() {
-        const INTO_U : usize = 0;
-        const FROM_U : usize = 1;
+        const INTO_G : usize = 0;
+        const FROM_G : usize = 1;
         const ADD : usize = 2;
         const FROM_R : usize = 3;
 
-        let push_from_unique = gen_push_unique();
-        let push_into_unique = gen_push_into_unique();
+        let push_from_global = gen_push_global();
+        let push_into_global = gen_push_into_global();
         let add = gen_add();
         let push_ret = gen_push_return();
 
@@ -417,7 +417,7 @@ mod tests {
             instrs: vec![
                 Op::Gen(ADD, vec![Slot::Local(0), Slot::Local(1)]),
                 Op::Gen(FROM_R, vec![]),
-                Op::Gen(INTO_U, vec![Slot::Local(2)]),
+                Op::Gen(INTO_G, vec![Slot::Local(2)]),
                 Op::Return,
             ],
         };
@@ -425,19 +425,19 @@ mod tests {
         let main = Fun { 
             name: "main".into(),
             instrs: vec![
-                Op::Gen(FROM_U, vec![Slot::Local(1)]),
-                Op::Gen(FROM_U, vec![Slot::Local(2)]),
+                Op::Gen(FROM_G, vec![Slot::Local(1)]),
+                Op::Gen(FROM_G, vec![Slot::Local(2)]),
                 Op::Call(1, vec![Slot::Local(0), Slot::Local(1)]),
-                Op::Gen(FROM_U, vec![Slot::Local(3)]), // from unique slot 3
-                Op::ReturnSlot(Slot::Local(2)), // from stack slot 2
+                Op::Gen(FROM_G, vec![Slot::Local(3)]), // from global slot 3
+                Op::ReturnSlot(Slot::Local(2)), // from local slot 2
             ],
         };
 
         let mut vm : Vm<u8, u8> = Vm::new(
             vec![main, other], 
-            vec![push_into_unique, push_from_unique, add, push_ret]);
+            vec![push_into_global, push_from_global, add, push_ret]);
 
-        vm.with_unique(vec![0, 3, 5]);
+        vm.with_globals(vec![0, 3, 5]);
 
         let data = vm.run(0).unwrap().unwrap();
 
@@ -446,7 +446,7 @@ mod tests {
 
     #[test]
     fn should_order_params() {
-        let push = gen_push_unique();
+        let push = gen_push_global();
         let bz = gen_set_branch_on_zero();
 
         let other = Fun { 
@@ -474,7 +474,7 @@ mod tests {
             vec![main, other], 
             vec![push, bz]);
 
-        vm.with_unique(vec![0, 3, 5]);
+        vm.with_globals(vec![0, 3, 5]);
 
         let data = vm.run(0).unwrap().unwrap();
 
@@ -483,7 +483,7 @@ mod tests {
     
     #[test]
     fn should_call_with_params() {
-        let push = gen_push_unique();
+        let push = gen_push_global();
         let add = gen_add();
         let push_ret = gen_push_return();
 
@@ -512,7 +512,7 @@ mod tests {
             vec![main, add_up], 
             vec![push, add, push_ret]);
 
-        vm.with_unique(vec![2, 3, 5]);
+        vm.with_globals(vec![2, 3, 5]);
 
         let data = vm.run(0).unwrap().unwrap();
 
