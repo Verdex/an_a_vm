@@ -5,6 +5,7 @@ pub type StackTrace = Vec<(Box<str>, usize)>;
 #[derive(Debug)]
 pub enum VmError {
     FunDoesNotExist(usize, StackTrace),
+    DynFunDoesNotExist(StackTrace),
     InstrPointerOutOfRange(usize, StackTrace),
     GenOpDoesNotExist(usize, StackTrace),
     CallAccessMissingReturn(StackTrace),
@@ -23,6 +24,8 @@ impl std::fmt::Display for VmError {
         match self { 
             VmError::FunDoesNotExist(fun_index, trace) => 
                 write!(f, "Fun Index {} does not exist: \n{}", fun_index, d(trace)),
+            VmError::DynFunDoesNotExist(trace) => 
+                write!(f, "Dynamic fun does not exist: \n{}", d(trace)),
             VmError::InstrPointerOutOfRange(instr, trace) => 
                 write!(f, "Instr Index {} does not exist: \n{}", instr, d(trace)),
             VmError::GenOpDoesNotExist(op_index, trace) => 
@@ -180,8 +183,13 @@ impl<T : Clone, S> Vm<T, S> {
                     data_stack.push(new_locals);
                 },
                 Op::DynCall(ref params) => {
+                    if dyn_call.is_none() {
+                        fun_stack.push(RetAddr { fun: current, instr: ip });
+                        return Err(VmError::DynFunDoesNotExist(stack_trace(fun_stack, &self.funs)));
+                    }
+
                     fun_stack.push(RetAddr { fun: current, instr: ip + 1 });
-                    current = dyn_call.unwrap(); // TODO
+                    current = dyn_call.unwrap(); 
                     ip = 0;
                     let mut new_locals = vec![];
                     for param in params {
