@@ -123,7 +123,7 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::Gen(op_index, ref params) if op_index < self.ops.len() => {
                     let env = OpEnv { 
                         locals: &mut data_stack, 
-                        globals: &mut self.unique,
+                        globals: &mut self.globals,
                         ret: &mut ret, 
                         branch: &mut branch, 
                     };
