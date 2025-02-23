@@ -389,6 +389,79 @@ mod tests {
             },
         }
     }
+
+    #[test]
+    fn should_dynamic_call() {
+        const ONE : usize = 0;
+        const TWO : usize = 1;
+        const ADD : usize = 2;
+        const PUSH_FROM_GLOBAL : usize = 3;
+        const PUSH_FROM_RETURN : usize = 4;
+
+        let add = gen_add();
+        let push_from_global = gen_push_global();
+        let push_from_return = gen_push_return();
+
+        let set_dyn_call_two = GenOp { 
+            name: "set two".into(),
+            op: | env, _ | {
+                *env.dyn_call = Some(2);
+                Ok(())
+            },
+        };
+
+        let set_dyn_call_one = GenOp { 
+            name: "set one".into(),
+            op: | env, _ | {
+                *env.dyn_call = Some(1);
+                Ok(())
+            },
+        };
+
+        let two = Fun { 
+            name: "two".into(),
+            instrs: vec![
+                Op::Gen(PUSH_FROM_GLOBAL, vec![Slot::Local(1)]), // get 2
+                Op::Gen(ADD, vec![Slot::Local(0), Slot::Local(1)]),
+                Op::ReturnSlot(Slot::Return),
+            ],
+        };
+
+        let one = Fun { 
+            name: "one".into(),
+            instrs: vec![
+                Op::Gen(PUSH_FROM_GLOBAL, vec![Slot::Local(0)]), // get 1
+                Op::Gen(ADD, vec![Slot::Local(0), Slot::Local(1)]),
+                Op::ReturnSlot(Slot::Return),
+            ],
+        };
+
+        let main = Fun { 
+            name: "main".into(),
+            instrs: vec![
+                Op::Gen(PUSH_FROM_GLOBAL, vec![Slot::Local(2)]), // get 7 (now local 0)
+                Op::Gen(PUSH_FROM_GLOBAL, vec![Slot::Local(3)]), // get 17 (now local 1)
+                Op::Gen(ONE, vec![]),
+                Op::DynCall(vec![Slot::Local(0)]), // should add 1 to 7 
+                Op::Gen(PUSH_FROM_RETURN, vec![]), // local 2 is now 8
+                Op::Gen(TWO, vec![]),
+                Op::DynCall(vec![Slot::Local(1)]), // should add 2 to 17 
+                Op::Gen(PUSH_FROM_RETURN, vec![]), // local 3 is now 19 
+                Op::Gen(ADD, vec![Slot::Local(2), Slot::Local(3)]), // should add 19 to 8
+                Op::ReturnSlot(Slot::Return),
+            ],
+        };
+
+        let mut vm : Vm<u8, u8> = Vm::new(
+            vec![main, one, two], 
+            vec![set_dyn_call_one, set_dyn_call_two, add, push_from_global, push_from_return]);
+
+        vm.with_globals(vec![1, 2, 7, 17]);
+
+        let data = vm.run(0).unwrap().unwrap();
+
+        assert_eq!(data, 27);
+    }
     
     #[test]
     fn should_handle_multiple_calls() {
