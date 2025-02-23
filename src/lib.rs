@@ -57,7 +57,7 @@ pub enum Op {
     // TODO
     // yield slot ; yield break
     // resume usize
-    // call reg vec<slot>
+    // call (whatever is in the call register) vec<slot>
 }
 
 pub struct Fun {
@@ -70,6 +70,7 @@ pub struct OpEnv<'a, T, S> {
     pub globals : &'a mut Vec<S>,
     pub ret : &'a mut Option<T>,
     pub branch : &'a mut bool,
+    // TODO call register
 }
 
 pub struct GenOp<T, S> {
