@@ -121,7 +121,13 @@ impl<T : Clone, S> Vm<T, S> {
 
             match self.funs[current].instrs[ip] {
                 Op::Gen(op_index, ref params) if op_index < self.ops.len() => {
-                    match (self.ops[op_index].op)(&mut data_stack, &mut self.unique, &mut ret, &mut branch, params) {
+                    let env = OpEnv { 
+                        locals: &mut data_stack, 
+                        globals: &mut self.unique,
+                        ret: &mut ret, 
+                        branch: &mut branch, 
+                    };
+                    match (self.ops[op_index].op)(env, params) {
                         Ok(()) => { },
                         Err(e) => { 
                             let name = self.ops[op_index].name.clone();
