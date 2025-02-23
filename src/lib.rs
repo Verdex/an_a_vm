@@ -54,10 +54,10 @@ pub enum Op {
     ReturnSlot(Slot),
     Return,
     Branch(usize),
+    DynCall(Vec<Slot>),
     // TODO
     // yield slot ; yield break
     // resume usize
-    // call (whatever is in the call register) vec<slot>
 }
 
 pub struct Fun {
@@ -70,7 +70,7 @@ pub struct OpEnv<'a, T, S> {
     pub globals : &'a mut Vec<S>,
     pub ret : &'a mut Option<T>,
     pub branch : &'a mut bool,
-    // TODO call register
+    pub dyn_call : &'a mut Option<usize>,
 }
 
 pub struct GenOp<T, S> {
@@ -105,6 +105,7 @@ impl<T : Clone, S> Vm<T, S> {
         let mut current : usize = entry;
         let mut ret : Option<T> = None;
         let mut branch : bool = false;
+        let mut dyn_call : Option<usize> = None;
 
         // Note:  Initial locals for entry function
         data_stack.push(vec![]);
@@ -127,6 +128,7 @@ impl<T : Clone, S> Vm<T, S> {
                         globals: &mut self.globals,
                         ret: &mut ret, 
                         branch: &mut branch, 
+                        dyn_call: &mut dyn_call,
                     };
                     match (self.ops[op_index].op)(env, params) {
                         Ok(()) => { },
@@ -152,6 +154,34 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::Call(fun_index, ref params) => {
                     fun_stack.push(RetAddr { fun: current, instr: ip + 1 });
                     current = fun_index;
+                    ip = 0;
+                    let mut new_locals = vec![];
+                    for param in params {
+                        match param { 
+                            Slot::Return => {
+                                match ret {
+                                    Some(ref v) => { new_locals.push(v.clone()); },
+                                    None => {
+                                        fun_stack.push(RetAddr{ fun: current, instr: ip });
+                                        return Err(VmError::CallAccessMissingReturn(stack_trace(fun_stack, &self.funs)));
+                                    },
+                                }
+                            },
+                            Slot::Local(index) => {
+                                if *index >= data_stack[data_stack.len() - 1].len() {
+                                    fun_stack.push(RetAddr{ fun: current, instr: ip });
+                                    return Err(VmError::CallAccessMissingLocal(*index, stack_trace(fun_stack, &self.funs)));
+                                }
+
+                                new_locals.push(data_stack[data_stack.len() - 1][*index].clone())
+                            },
+                        }
+                    }
+                    data_stack.push(new_locals);
+                },
+                Op::DynCall(ref params) => {
+                    fun_stack.push(RetAddr { fun: current, instr: ip + 1 });
+                    current = dyn_call.unwrap(); // TODO
                     ip = 0;
                     let mut new_locals = vec![];
                     for param in params {
