@@ -54,6 +54,10 @@ pub enum Op {
     ReturnSlot(Slot),
     Return,
     Branch(usize),
+    // TODO
+    // yield slot ; yield break
+    // resume usize
+    // call reg vec<slot>
 }
 
 pub struct Fun {
