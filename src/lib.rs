@@ -249,24 +249,24 @@ mod tests {
     fn gen_set_branch<T, S>() -> GenOp<T, S> {
         GenOp {
             name: "set".into(),
-            op: |_, _, _, b, _| { *b = true; Ok(()) },
+            op: |env, _| { *env.branch = true; Ok(()) },
         }
     }
 
     fn gen_unset_branch<T, S>() -> GenOp<T, S> {
         GenOp {
             name: "unset".into(),
-            op: |_, _, _, b, _| { *b = false; Ok(()) },
+            op: |env, _| { *env.branch = false; Ok(()) },
         }
     }
 
     fn gen_set_branch_on_zero<S>() -> GenOp<u8, S> {
         GenOp {
             name: "bz".into(),
-            op: |d, _, _, b, params| { 
+            op: |env, params| { 
                 if let [Slot::Local(s)] = &params[..] {
-                    let v = d.last().unwrap()[*s];
-                    *b = v == 0;
+                    let v = env.locals.last().unwrap()[*s];
+                    *env.branch = v == 0;
                 }
                 Ok(()) 
             },
@@ -276,10 +276,10 @@ mod tests {
     fn gen_push_unique<T : Copy>() -> GenOp<T, T> {
         GenOp {
             name: "push unique".into(),
-            op: |d, u, _, _, params| { 
+            op: |env, params| { 
                 if let [Slot::Local(s)] = &params[..] {
-                    let v = u[*s];
-                    d.last_mut().unwrap().push(v);
+                    let v = env.globals[*s];
+                    env.locals.last_mut().unwrap().push(v);
                 }
                 Ok(())
             },
@@ -289,10 +289,10 @@ mod tests {
     fn gen_push_into_unique<T : Copy>() -> GenOp<T, T> {
         GenOp {
             name: "push into unique".into(),
-            op: |d, u, _, _, params| { 
+            op: |env, params| { 
                 if let [Slot::Local(s)] = &params[..] {
-                    let v = d.last().unwrap()[*s];
-                    u.push(v);
+                    let v = env.locals.last().unwrap()[*s];
+                    env.globals.push(v);
                 }
                 Ok(())
             },
@@ -302,10 +302,10 @@ mod tests {
     fn gen_dec<S>() -> GenOp<u8, S> {
         GenOp {
             name: "mul".into(),
-            op: | d, _, ret, _, params |  { 
+            op: | env, params |  { 
                 if let [Slot::Local(s)] = &params[..] {
-                    let a = &d.last().unwrap()[*s];
-                    *ret = Some(a - 1);
+                    let a = &env.locals.last().unwrap()[*s];
+                    *env.ret = Some(a - 1);
                 }
                 Ok(())
             },
@@ -315,11 +315,11 @@ mod tests {
     fn gen_mul<S>() -> GenOp<u8, S> {
         GenOp {
             name: "mul".into(),
-            op: | d, _, ret, _, params |  { 
+            op: | env, params |  { 
                 if let [Slot::Local(s1), Slot::Local(s2)] = &params[..] {
-                    let a = &d.last().unwrap()[*s1];
-                    let b = &d.last().unwrap()[*s2];
-                    *ret = Some(*a * *b);
+                    let a = &env.locals.last().unwrap()[*s1];
+                    let b = &env.locals.last().unwrap()[*s2];
+                    *env.ret = Some(*a * *b);
                 }
                 Ok(())
             },
@@ -329,11 +329,11 @@ mod tests {
     fn gen_add<S>() -> GenOp<u8, S> {
         GenOp {
             name: "add".into(),
-            op: | d, _, ret, _, params |  { 
+            op: | env, params |  { 
                 if let [Slot::Local(s1), Slot::Local(s2)] = &params[..] {
-                    let a = &d.last().unwrap()[*s1];
-                    let b = &d.last().unwrap()[*s2];
-                    *ret = Some(*a + *b);
+                    let a = &env.locals.last().unwrap()[*s1];
+                    let b = &env.locals.last().unwrap()[*s2];
+                    *env.ret = Some(*a + *b);
                 }
                 Ok(())
             },
@@ -343,9 +343,9 @@ mod tests {
     fn gen_push_return<T : Copy, S>() -> GenOp<T, S> {
         GenOp { 
             name: "push_return".into(),
-            op: | d, _, ret, _, _ | {
-                let v = ret.unwrap();
-                d.last_mut().unwrap().push(v);
+            op: | env, _ | {
+                let v = env.ret.unwrap();
+                env.locals.last_mut().unwrap().push(v);
                 Ok(())
             },
         }
@@ -524,9 +524,9 @@ mod tests {
 
         let push : GenOp<u8, u8> = GenOp {
             name : "push".into(),
-            op: |d, _, _, _, _ | { 
-                let l = d.len() - 1;
-                d[l].push(9);
+            op: |env, _ | { 
+                let l = env.locals.len() - 1;
+                env.locals[l].push(9);
                 Ok(())
             },
         };
@@ -565,13 +565,13 @@ mod tests {
 
         let push_stack : GenOp<u8, u8> = GenOp {
             name : "push".into(),
-            op: |d, _, _, _, ps | { 
-                let l = d.len() - 1;
+            op: |env, ps | { 
+                let l = env.locals.len() - 1;
                 if let Slot::Local(0) = ps[0] {
-                    d[l].push(0);
+                    env.locals[l].push(0);
                 }
                 if let Slot::Local(1) = ps[0] {
-                    d[l].push(1);
+                    env.locals[l].push(1);
                 }
                 Ok(())
             },
