@@ -93,7 +93,7 @@ impl<T : Clone, S> Vm<T, S> {
         Vm { funs, ops, unique: vec![] }
     }
 
-    pub fn with_unique(&mut self, unique : Vec<S>) -> Vec<S> {
+    pub fn with_unique(&mut self, unique : Vec<S>) -> Vec<S> { // todo with globals
         std::mem::replace(&mut self.unique, unique)
     }
 
