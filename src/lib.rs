@@ -98,14 +98,14 @@ impl<T : Clone, S> Vm<T, S> {
         data_stack.push(vec![]);
         loop {
             if current >= self.funs.len() {
-                return Err(VmError::FunDoesNotExist(current, stack_trace(&fun_stack, &self.funs)));
+                return Err(VmError::FunDoesNotExist(current, stack_trace(fun_stack, &self.funs)));
             }
 
             if ip >= self.funs[current].instrs.len() {
                 // Note:  if the current function isn't pushed onto the return stack, then the
                 // stack trace will leave out the current function where the problem is occurring.
                 fun_stack.push(RetAddr { fun: current, instr: ip });
-                return Err(VmError::InstrPointerOutOfRange(ip, stack_trace(&fun_stack, &self.funs)));
+                return Err(VmError::InstrPointerOutOfRange(ip, stack_trace(fun_stack, &self.funs)));
             }
 
             match self.funs[current].instrs[ip] {
@@ -115,7 +115,7 @@ impl<T : Clone, S> Vm<T, S> {
                         Err(e) => { 
                             let name = self.ops[op_index].name.clone();
                             fun_stack.push(RetAddr { fun: current, instr: ip });
-                            return Err(VmError::GenOpError(name, e, stack_trace(&fun_stack, &self.funs))); 
+                            return Err(VmError::GenOpError(name, e, stack_trace(fun_stack, &self.funs))); 
                         }
                     }
                     ip += 1;
@@ -123,7 +123,7 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::Gen(op_index, _) => {
                     // Note:  Indicate current function for stack trace.
                     fun_stack.push(RetAddr { fun: current, instr: ip });
-                    return Err(VmError::GenOpDoesNotExist(op_index, stack_trace(&fun_stack, &self.funs)));
+                    return Err(VmError::GenOpDoesNotExist(op_index, stack_trace(fun_stack, &self.funs)));
                 },
                 Op::Branch(target) if branch => {
                     ip = target;
@@ -143,14 +143,14 @@ impl<T : Clone, S> Vm<T, S> {
                                     Some(ref v) => { new_locals.push(v.clone()); },
                                     None => {
                                         fun_stack.push(RetAddr{ fun: current, instr: ip });
-                                        return Err(VmError::CallAccessMissingReturn(stack_trace(&fun_stack, &self.funs)));
+                                        return Err(VmError::CallAccessMissingReturn(stack_trace(fun_stack, &self.funs)));
                                     },
                                 }
                             },
                             Slot::Local(index) => {
                                 if *index >= data_stack[data_stack.len() - 1].len() {
                                     fun_stack.push(RetAddr{ fun: current, instr: ip });
-                                    return Err(VmError::CallAccessMissingLocal(*index, stack_trace(&fun_stack, &self.funs)));
+                                    return Err(VmError::CallAccessMissingLocal(*index, stack_trace(fun_stack, &self.funs)));
                                 }
 
                                 new_locals.push(data_stack[data_stack.len() - 1][*index].clone())
@@ -166,7 +166,7 @@ impl<T : Clone, S> Vm<T, S> {
                         Slot::Local(index) => {
                             if *index >= current_locals.len() {
                                 fun_stack.push(RetAddr{ fun: current, instr: ip });
-                                return Err(VmError::ReturnAccessMissingLocal(*index, stack_trace(&fun_stack, &self.funs)));
+                                return Err(VmError::ReturnAccessMissingLocal(*index, stack_trace(fun_stack, &self.funs)));
                             }
 
                             current_locals.swap_remove(*index)
@@ -176,7 +176,7 @@ impl<T : Clone, S> Vm<T, S> {
                                 Some(v) => v,
                                 None => {
                                     fun_stack.push(RetAddr{ fun: current, instr: ip });
-                                    return Err(VmError::ReturnAccessMissingReturn(stack_trace(&fun_stack, &self.funs)));
+                                    return Err(VmError::ReturnAccessMissingReturn(stack_trace(fun_stack, &self.funs)));
                                 },
                             }
                         }, 
@@ -213,7 +213,7 @@ impl<T : Clone, S> Vm<T, S> {
     }
 }
 
-fn stack_trace(stack : &[RetAddr], fun_map : &[Fun]) -> StackTrace {
+fn stack_trace(stack : Vec<RetAddr>, fun_map : &[Fun]) -> StackTrace {
     let mut trace = vec![];
     for addr in stack {
         // Note:  if the function was already pushed into the stack, then
