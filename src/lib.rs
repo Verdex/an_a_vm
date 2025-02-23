@@ -65,9 +65,16 @@ pub struct Fun {
     pub instrs : Vec<Op>,
 }
 
+pub struct OpEnv<'a, T, S> {
+    pub locals : &'a mut Vec<Vec<T>>,
+    pub globals : &'a mut Vec<S>,
+    pub ret : &'a mut Option<T>,
+    pub branch : &'a mut bool,
+}
+
 pub struct GenOp<T, S> {
     pub name : Box<str>,
-    pub op : fn(&mut Vec<Vec<T>>, &mut Vec<S>, &mut Option<T>, &mut bool, &Vec<Slot>) -> Result<(), Box<dyn std::error::Error>>,
+    pub op : for<'a> fn(env : OpEnv<'a, T, S>, params : &Vec<Slot>) -> Result<(), Box<dyn std::error::Error>>,
 }
 
 pub struct Vm<T, S> {
