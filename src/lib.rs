@@ -8,10 +8,8 @@ pub enum VmError {
     DynFunDoesNotExist(StackTrace),
     InstrPointerOutOfRange(usize, StackTrace),
     GenOpDoesNotExist(usize, StackTrace),
-    CallAccessMissingReturn(StackTrace),
-    CallAccessMissingLocal(usize, StackTrace),
-    ReturnAccessMissingReturn(StackTrace),
-    ReturnAccessMissingLocal(usize, StackTrace),
+    AccessMissingReturn(StackTrace),
+    AccessMissingLocal(usize, StackTrace),
     GenOpError(Box<str>, Box<dyn std::error::Error>, StackTrace),
 }
 
@@ -30,14 +28,10 @@ impl std::fmt::Display for VmError {
                 write!(f, "Instr Index {} does not exist: \n{}", instr, d(trace)),
             VmError::GenOpDoesNotExist(op_index, trace) => 
                 write!(f, "GenOp {} does not exist: \n{}", op_index, d(trace)),
-            VmError::CallAccessMissingReturn(trace) => 
-                write!(f, "Call attempting to access missing return: \n{}", d(trace)),
-            VmError::CallAccessMissingLocal(local, trace) => 
-                write!(f, "Call attempting to access missing local {}: \n{}", local, d(trace)),
-            VmError::ReturnAccessMissingReturn(trace) => 
-                write!(f, "Return attempting to access missing return: \n{}", d(trace)),
-            VmError::ReturnAccessMissingLocal(local, trace) => 
-                write!(f, "Return attempting to access missing local {}: \n{}", local, d(trace)),
+            VmError::AccessMissingReturn(trace) => 
+                write!(f, "Attempting to access missing return: \n{}", d(trace)),
+            VmError::AccessMissingLocal(local, trace) => 
+                write!(f, "Attempting to access missing local {}: \n{}", local, d(trace)),
             VmError::GenOpError(name, error, trace) => 
                 write!(f, "GenOp {} encountered error {}: \n{}", name, error, d(trace)),
         }
@@ -166,14 +160,14 @@ impl<T : Clone, S> Vm<T, S> {
                                     Some(ref v) => { new_locals.push(v.clone()); },
                                     None => {
                                         fun_stack.push(RetAddr{ fun: current, instr: ip });
-                                        return Err(VmError::CallAccessMissingReturn(stack_trace(fun_stack, &self.funs)));
+                                        return Err(VmError::AccessMissingReturn(stack_trace(fun_stack, &self.funs)));
                                     },
                                 }
                             },
                             Slot::Local(index) => {
                                 if *index >= locals[locals.len() - 1].len() {
                                     fun_stack.push(RetAddr{ fun: current, instr: ip });
-                                    return Err(VmError::CallAccessMissingLocal(*index, stack_trace(fun_stack, &self.funs)));
+                                    return Err(VmError::AccessMissingLocal(*index, stack_trace(fun_stack, &self.funs)));
                                 }
 
                                 new_locals.push(locals[locals.len() - 1][*index].clone())
@@ -199,14 +193,14 @@ impl<T : Clone, S> Vm<T, S> {
                                     Some(ref v) => { new_locals.push(v.clone()); },
                                     None => {
                                         fun_stack.push(RetAddr{ fun: current, instr: ip });
-                                        return Err(VmError::CallAccessMissingReturn(stack_trace(fun_stack, &self.funs)));
+                                        return Err(VmError::AccessMissingReturn(stack_trace(fun_stack, &self.funs)));
                                     },
                                 }
                             },
                             Slot::Local(index) => {
                                 if *index >= locals[locals.len() - 1].len() {
                                     fun_stack.push(RetAddr{ fun: current, instr: ip });
-                                    return Err(VmError::CallAccessMissingLocal(*index, stack_trace(fun_stack, &self.funs)));
+                                    return Err(VmError::AccessMissingLocal(*index, stack_trace(fun_stack, &self.funs)));
                                 }
 
                                 new_locals.push(locals[locals.len() - 1][*index].clone())
@@ -222,7 +216,7 @@ impl<T : Clone, S> Vm<T, S> {
                         Slot::Local(index) => {
                             if *index >= current_locals.len() {
                                 fun_stack.push(RetAddr{ fun: current, instr: ip });
-                                return Err(VmError::ReturnAccessMissingLocal(*index, stack_trace(fun_stack, &self.funs)));
+                                return Err(VmError::AccessMissingLocal(*index, stack_trace(fun_stack, &self.funs)));
                             }
 
                             current_locals.swap_remove(*index)
@@ -232,7 +226,7 @@ impl<T : Clone, S> Vm<T, S> {
                                 Some(v) => v,
                                 None => {
                                     fun_stack.push(RetAddr{ fun: current, instr: ip });
-                                    return Err(VmError::ReturnAccessMissingReturn(stack_trace(fun_stack, &self.funs)));
+                                    return Err(VmError::AccessMissingReturn(stack_trace(fun_stack, &self.funs)));
                                 },
                             }
                         }, 
