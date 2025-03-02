@@ -103,7 +103,7 @@ impl<T : Clone, S> Vm<T, S> {
         let mut fun_stack : Vec<RetAddr> = vec![];
         let mut locals : Vec<Vec<T>> = vec![]; 
         let mut ip : usize = 0;
-        let mut current : usize = entry;
+        let mut fun : usize = entry; 
         let mut ret : Option<T> = None;
         let mut branch : bool = false;
         let mut dyn_call : Option<usize> = None;
@@ -111,18 +111,18 @@ impl<T : Clone, S> Vm<T, S> {
         // Note:  Initial locals for entry function
         locals.push(vec![]);
         loop {
-            if current >= self.funs.len() {
-                return Err(VmError::FunDoesNotExist(current, stack_trace(fun_stack, &self.funs)));
+            if fun >= self.funs.len() {
+                return Err(VmError::FunDoesNotExist(fun, stack_trace(fun_stack, &self.funs)));
             }
 
-            if ip >= self.funs[current].instrs.len() {
+            if ip >= self.funs[fun].instrs.len() {
                 // Note:  if the current function isn't pushed onto the return stack, then the
                 // stack trace will leave out the current function where the problem is occurring.
-                fun_stack.push(RetAddr { fun: current, instr: ip });
+                fun_stack.push(RetAddr { fun, instr: ip });
                 return Err(VmError::InstrPointerOutOfRange(ip, stack_trace(fun_stack, &self.funs)));
             }
 
-            match self.funs[current].instrs[ip] {
+            match self.funs[fun].instrs[ip] {
                 Op::Gen(op_index, ref params) if op_index < self.ops.len() => {
                     let env = OpEnv { 
                         locals: &mut locals, 
@@ -135,7 +135,7 @@ impl<T : Clone, S> Vm<T, S> {
                         Ok(()) => { },
                         Err(e) => { 
                             let name = self.ops[op_index].name.clone();
-                            fun_stack.push(RetAddr { fun: current, instr: ip });
+                            fun_stack.push(RetAddr { fun, instr: ip });
                             return Err(VmError::GenOpError(name, e, stack_trace(fun_stack, &self.funs))); 
                         }
                     }
@@ -143,7 +143,7 @@ impl<T : Clone, S> Vm<T, S> {
                 },
                 Op::Gen(op_index, _) => {
                     // Note:  Indicate current function for stack trace.
-                    fun_stack.push(RetAddr { fun: current, instr: ip });
+                    fun_stack.push(RetAddr { fun, instr: ip });
                     return Err(VmError::GenOpDoesNotExist(op_index, stack_trace(fun_stack, &self.funs)));
                 },
                 Op::Branch(target) if branch => {
@@ -153,15 +153,15 @@ impl<T : Clone, S> Vm<T, S> {
                     ip += 1;
                 },
                 Op::Call(fun_index, ref params) => {
-                    fun_stack.push(RetAddr { fun: current, instr: ip + 1 });
-                    current = fun_index;
+                    fun_stack.push(RetAddr { fun, instr: ip + 1 });
+                    fun = fun_index;
                     ip = 0;
                     let mut new_locals = vec![];
                     for param in params {
                         match get_slot(param, Cow::Borrowed(&locals[locals.len() - 1]), Cow::Borrowed(&ret)) {
                             Ok(v) => { new_locals.push(v); },
                             Err(f) => { 
-                                fun_stack.push(RetAddr{ fun: current, instr: ip });
+                                fun_stack.push(RetAddr{ fun, instr: ip });
                                 return Err(f(stack_trace(fun_stack, &self.funs)));
                             },
                         }
@@ -170,19 +170,19 @@ impl<T : Clone, S> Vm<T, S> {
                 },
                 Op::DynCall(ref params) => {
                     if dyn_call.is_none() {
-                        fun_stack.push(RetAddr { fun: current, instr: ip });
+                        fun_stack.push(RetAddr { fun, instr: ip });
                         return Err(VmError::DynFunDoesNotExist(stack_trace(fun_stack, &self.funs)));
                     }
 
-                    fun_stack.push(RetAddr { fun: current, instr: ip + 1 });
-                    current = dyn_call.unwrap(); 
+                    fun_stack.push(RetAddr { fun, instr: ip + 1 });
+                    fun = dyn_call.unwrap(); 
                     ip = 0;
                     let mut new_locals = vec![];
                     for param in params {
                         match get_slot(param, Cow::Borrowed(&locals[locals.len() - 1]), Cow::Borrowed(&ret)) {
                             Ok(v) => { new_locals.push(v); },
                             Err(f) => { 
-                                fun_stack.push(RetAddr{ fun: current, instr: ip });
+                                fun_stack.push(RetAddr{ fun, instr: ip });
                                 return Err(f(stack_trace(fun_stack, &self.funs)));
                             },
                         }
@@ -195,7 +195,7 @@ impl<T : Clone, S> Vm<T, S> {
                     let ret_target = match get_slot(slot, Cow::Owned(current_locals), Cow::Owned(ret)) {
                         Ok(v) => v,
                         Err(f) => { 
-                            fun_stack.push(RetAddr{ fun: current, instr: ip });
+                            fun_stack.push(RetAddr{ fun, instr: ip });
                             return Err(f(stack_trace(fun_stack, &self.funs)));
                         },
                     };
@@ -206,7 +206,7 @@ impl<T : Clone, S> Vm<T, S> {
                             return Ok(Some(ret_target));
                         },
                         Some(ret_addr) => {
-                            current = ret_addr.fun;
+                            fun = ret_addr.fun;
                             ip = ret_addr.instr;
                             ret = Some(ret_target);
                         },
@@ -220,7 +220,7 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                         Some(ret_addr) => {
                             locals.pop();
-                            current = ret_addr.fun;
+                            fun = ret_addr.fun;
                             ip = ret_addr.instr;
                             ret = None;
                         },
