@@ -53,6 +53,7 @@ pub enum Op {
     Return,
     Branch(usize),
     DynCall(Vec<Slot>),
+    Yield(Slot),
     // TODO
     // yield slot ; yield break
     // resume usize
@@ -224,6 +225,10 @@ impl<T : Clone, S> Vm<T, S> {
                             ret = None;
                         },
                     }
+                },
+                Op::Yield(ref slot) => {
+
+                    todo!()
                 },
             }
         }
