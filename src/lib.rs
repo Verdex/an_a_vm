@@ -187,26 +187,14 @@ impl<T : Clone, S> Vm<T, S> {
                     locals.push(new_locals);
                 },
                 Op::ReturnSlot(ref slot) => {
-                    let mut current_locals = locals.pop().unwrap();
+                    let current_locals = locals.pop().unwrap();
 
-                    let ret_target = match slot {
-                        Slot::Local(index) => {
-                            if *index >= current_locals.len() {
-                                fun_stack.push(RetAddr{ fun: current, instr: ip });
-                                return Err(VmError::AccessMissingLocal(*index, stack_trace(fun_stack, &self.funs)));
-                            }
-
-                            current_locals.swap_remove(*index)
-                        }, 
-                        Slot::Return => {
-                            match ret {
-                                Some(v) => v,
-                                None => {
-                                    fun_stack.push(RetAddr{ fun: current, instr: ip });
-                                    return Err(VmError::AccessMissingReturn(stack_trace(fun_stack, &self.funs)));
-                                },
-                            }
-                        }, 
+                    let ret_target = match get_slot(slot, Cow::Owned(current_locals), Cow::Owned(ret)) {
+                        Ok(v) => v,
+                        Err(f) => { 
+                            fun_stack.push(RetAddr{ fun: current, instr: ip });
+                            return Err(f(stack_trace(fun_stack, &self.funs)));
+                        },
                     };
 
                     match fun_stack.pop() {
