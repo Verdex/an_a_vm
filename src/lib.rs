@@ -1,4 +1,5 @@
 
+use std::borrow::Cow;
 
 pub type StackTrace = Vec<(Box<str>, usize)>;
 
@@ -258,6 +259,32 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                     }
                 },
+            }
+        }
+    }
+}
+
+fn get_slot<T : Clone>(slot : &Slot, locals : Cow<Vec<T>>, ret : Cow<Option<T>>) 
+    -> Result<T, Box<dyn Fn(StackTrace) -> VmError>> {
+
+    match slot { 
+        Slot::Return => {
+            match ret {
+                Cow::Borrowed(Some(ref v)) => Ok(v.clone()),
+                Cow::Owned(Some(v)) => Ok(v),
+                _ => Err(Box::new(|trace| VmError::AccessMissingReturn(trace))),
+            }
+        },
+        Slot::Local(index) => {
+            if *index >= locals.len() {
+                let index = *index;
+                Err(Box::new(move |trace| VmError::AccessMissingLocal(index, trace)))
+            }
+            else {
+                match locals {
+                    Cow::Borrowed(locals) => Ok(locals[*index].clone()),
+                    Cow::Owned(mut locals) => Ok(locals.swap_remove(*index)),
+                }
             }
         }
     }
