@@ -155,23 +155,11 @@ impl<T : Clone, S> Vm<T, S> {
                     ip = 0;
                     let mut new_locals = vec![];
                     for param in params {
-                        match param { 
-                            Slot::Return => {
-                                match ret {
-                                    Some(ref v) => { new_locals.push(v.clone()); },
-                                    None => {
-                                        fun_stack.push(RetAddr{ fun: current, instr: ip });
-                                        return Err(VmError::AccessMissingReturn(stack_trace(fun_stack, &self.funs)));
-                                    },
-                                }
-                            },
-                            Slot::Local(index) => {
-                                if *index >= locals[locals.len() - 1].len() {
-                                    fun_stack.push(RetAddr{ fun: current, instr: ip });
-                                    return Err(VmError::AccessMissingLocal(*index, stack_trace(fun_stack, &self.funs)));
-                                }
-
-                                new_locals.push(locals[locals.len() - 1][*index].clone())
+                        match get_slot(param, Cow::Borrowed(&locals[locals.len() - 1]), Cow::Borrowed(&ret)) {
+                            Ok(v) => { new_locals.push(v); },
+                            Err(f) => { 
+                                fun_stack.push(RetAddr{ fun: current, instr: ip });
+                                return Err(f(stack_trace(fun_stack, &self.funs)));
                             },
                         }
                     }
