@@ -12,6 +12,7 @@ pub enum VmError {
     AccessMissingReturn(StackTrace),
     AccessMissingLocal(usize, StackTrace),
     GenOpError(Box<str>, Box<dyn std::error::Error>, StackTrace),
+    TopLevelYield(usize),
 }
 
 impl std::fmt::Display for VmError {
@@ -35,6 +36,8 @@ impl std::fmt::Display for VmError {
                 write!(f, "Attempting to access missing local {}: \n{}", local, d(trace)),
             VmError::GenOpError(name, error, trace) => 
                 write!(f, "GenOp {} encountered error {}: \n{}", name, error, d(trace)),
+            VmError::TopLevelYield(ip) =>
+                write!(f, "Top Level Yield no supported at instruction: {}", ip),
         }
     }
 }
@@ -57,6 +60,9 @@ pub enum Op {
     // TODO
     // yield slot ; yield break
     // resume usize
+    // branch on ended coroutine
+    // TODO  ? dup, swap, drop, move, push_from_ret
+    //
 }
 
 pub struct Fun {
@@ -88,6 +94,16 @@ struct RetAddr {
     instr : usize,
 }
 
+enum Coroutine<T> {
+    Active {
+        locals : Vec<T>,
+        ip : usize,
+        fun : usize,
+        coroutines : Vec<Coroutine<T>>,
+    },
+    Finished,
+}
+
 impl<T : Clone, S> Vm<T, S> {
     pub fn new(funs : Vec<Fun>, ops : Vec<GenOp<T, S>>) -> Self {
         Vm { funs, ops, globals: vec![] }
@@ -108,8 +124,11 @@ impl<T : Clone, S> Vm<T, S> {
         let mut branch : bool = false;
         let mut dyn_call : Option<usize> = None;
 
+        let mut coroutines : Vec<Vec<Coroutine<T>>> = vec![];
+
         // Note:  Initial locals for entry function
         locals.push(vec![]);
+        coroutines.push(vec![]);
         loop {
             if fun >= self.funs.len() {
                 return Err(VmError::FunDoesNotExist(fun, stack_trace(fun_stack, &self.funs)));
@@ -167,6 +186,7 @@ impl<T : Clone, S> Vm<T, S> {
                         }
                     }
                     locals.push(new_locals);
+                    coroutines.push(vec![]);
                 },
                 Op::DynCall(ref params) => {
                     if dyn_call.is_none() {
@@ -188,8 +208,10 @@ impl<T : Clone, S> Vm<T, S> {
                         }
                     }
                     locals.push(new_locals);
+                    coroutines.push(vec![]);
                 },
                 Op::ReturnSlot(ref slot) => {
+                    coroutines.pop().unwrap();
                     let current_locals = locals.pop().unwrap();
 
                     let ret_target = match get_slot(slot, Cow::Owned(current_locals), Cow::Owned(ret)) {
@@ -219,7 +241,8 @@ impl<T : Clone, S> Vm<T, S> {
                             return Ok(None);
                         },
                         Some(ret_addr) => {
-                            locals.pop();
+                            coroutines.pop().unwrap();
+                            locals.pop().unwrap();
                             fun = ret_addr.fun;
                             ip = ret_addr.instr;
                             ret = None;
@@ -227,6 +250,59 @@ impl<T : Clone, S> Vm<T, S> {
                     }
                 },
                 Op::Yield(ref slot) => {
+
+                    /*
+                    let current_coroutines = coroutines.pop().unwrap();
+
+                    let current_locals = locals.pop().unwrap();
+
+                    let ret_target = match get_slot(slot, Cow::Owned(current_locals), Cow::Owned(ret)) {
+                        Ok(v) => v,
+                        Err(f) => { 
+                            fun_stack.push(RetAddr{ fun, instr: ip });
+                            return Err(f(stack_trace(fun_stack, &self.funs)));
+                        },
+                    };
+
+                    match fun_stack.pop() {
+                        None => {
+                            // Note: Top level yields are not supported.
+                            return Err(VmError::TopLevelYield(ip)); 
+                        },
+                        Some(ret_addr) => {
+                            fun = ret_addr.fun;
+                            ip = ret_addr.instr;
+                            ret = Some(ret_target);
+                        },
+                    }
+
+                    let current_locals = locals.pop();
+                    let current_ret = ret;
+                    let current_ip = ip;
+                    ret = None;
+
+                    */
+
+
+                    /*
+
+                            locals.pop();
+                            current = ret_addr.fun;
+                            ip = ret_addr.instr;
+                            ret = None;
+
+                    */
+
+                    /*
+        let mut fun_stack : Vec<RetAddr> = vec![];
+        let mut locals : Vec<Vec<T>> = vec![]; 
+        let mut ip : usize = 0;
+        let mut current : usize = entry;
+        let mut ret : Option<T> = None;
+        let mut branch : bool = false;
+        let mut dyn_call : Option<usize> = None;
+                    */
+
 
                     todo!()
                 },
