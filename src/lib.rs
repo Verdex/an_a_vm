@@ -250,7 +250,6 @@ impl<T : Clone, S> Vm<T, S> {
                     }
                 },
                 Op::Yield(ref slot) => {
-
                     let current_coroutines = coroutines.pop().unwrap();
                     let current_locals = locals.pop().unwrap();
                     let current_ip = ip + 1;
