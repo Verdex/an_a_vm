@@ -57,8 +57,8 @@ pub enum Op {
     Branch(usize),
     DynCall(Vec<Slot>),
     Yield(Slot),
+    FinishCoroutine,
     // TODO
-    // yield slot ; yield break
     // resume usize
     // branch on ended coroutine
     // TODO  ? dup, swap, drop, move, push_from_ret
@@ -281,6 +281,22 @@ impl<T : Clone, S> Vm<T, S> {
                             fun = ret_addr.fun;
                             ip = ret_addr.instr;
                             ret = Some(ret_target);
+                        },
+                    }
+                },
+                Op::FinishCoroutine => {
+                    match fun_stack.pop() {
+                        None => {
+                            // Note: Top level yields are not supported.
+                            return Err(VmError::TopLevelYield(ip)); 
+                        },
+                        Some(ret_addr) => {
+                            coroutines.pop().unwrap();
+                            fun = ret_addr.fun;
+                            ip = ret_addr.instr;
+                            ret = None;
+
+                            coroutines.last_mut().unwrap().push(Coroutine::Finished);
                         },
                     }
                 },
