@@ -58,9 +58,9 @@ pub enum Op {
     DynCall(Vec<Slot>),
     Yield(Slot),
     FinishCoroutine,
-    // TODO
-    // resume usize
-    // branch on ended coroutine
+    Resume(usize),
+    // TODO 
+    // set branch on finished coroutine (target coroutine : usize) 
     // TODO  ? dup, swap, drop, move, push_from_ret
     //
 }
@@ -299,6 +299,9 @@ impl<T : Clone, S> Vm<T, S> {
                             coroutines.last_mut().unwrap().push(Coroutine::Finished);
                         },
                     }
+                },
+                Op::Resume(coroutine) => {
+                    todo!()
                 },
             }
         }
