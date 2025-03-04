@@ -251,18 +251,27 @@ impl<T : Clone, S> Vm<T, S> {
                 },
                 Op::Yield(ref slot) => {
 
-                    /*
                     let current_coroutines = coroutines.pop().unwrap();
-
                     let current_locals = locals.pop().unwrap();
+                    let current_ip = ip + 1;
+                    let current_fun = fun;
 
-                    let ret_target = match get_slot(slot, Cow::Owned(current_locals), Cow::Owned(ret)) {
+                    let ret_target = match get_slot(slot, Cow::Borrowed(&current_locals), Cow::Owned(ret)) {
                         Ok(v) => v,
                         Err(f) => { 
                             fun_stack.push(RetAddr{ fun, instr: ip });
                             return Err(f(stack_trace(fun_stack, &self.funs)));
                         },
                     };
+
+                    let this_coroutine = Coroutine::Active {
+                        coroutines: current_coroutines,
+                        locals: current_locals,
+                        ip: current_ip,
+                        fun: current_fun,
+                    };
+
+                    coroutines.last_mut().unwrap().push(this_coroutine);
 
                     match fun_stack.pop() {
                         None => {
@@ -275,36 +284,6 @@ impl<T : Clone, S> Vm<T, S> {
                             ret = Some(ret_target);
                         },
                     }
-
-                    let current_locals = locals.pop();
-                    let current_ret = ret;
-                    let current_ip = ip;
-                    ret = None;
-
-                    */
-
-
-                    /*
-
-                            locals.pop();
-                            current = ret_addr.fun;
-                            ip = ret_addr.instr;
-                            ret = None;
-
-                    */
-
-                    /*
-        let mut fun_stack : Vec<RetAddr> = vec![];
-        let mut locals : Vec<Vec<T>> = vec![]; 
-        let mut ip : usize = 0;
-        let mut current : usize = entry;
-        let mut ret : Option<T> = None;
-        let mut branch : bool = false;
-        let mut dyn_call : Option<usize> = None;
-                    */
-
-
-                    todo!()
                 },
             }
         }
