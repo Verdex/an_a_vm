@@ -177,7 +177,7 @@ impl<T : Clone, S> Vm<T, S> {
                     ip = 0;
                     let mut new_locals = vec![];
                     for param in params {
-                        match get_slot(param, Cow::Borrowed(&locals[locals.len() - 1]), Cow::Borrowed(&ret)) {
+                        match get_slot(param, Cow::Borrowed(locals.last().unwrap()), Cow::Borrowed(&ret)) {
                             Ok(v) => { new_locals.push(v); },
                             Err(f) => { 
                                 fun_stack.push(RetAddr{ fun, instr: ip });
@@ -199,7 +199,7 @@ impl<T : Clone, S> Vm<T, S> {
                     ip = 0;
                     let mut new_locals = vec![];
                     for param in params {
-                        match get_slot(param, Cow::Borrowed(&locals[locals.len() - 1]), Cow::Borrowed(&ret)) {
+                        match get_slot(param, Cow::Borrowed(locals.last().unwrap()), Cow::Borrowed(&ret)) {
                             Ok(v) => { new_locals.push(v); },
                             Err(f) => { 
                                 fun_stack.push(RetAddr{ fun, instr: ip });
@@ -684,8 +684,7 @@ mod tests {
         let push : GenOp<u8, u8> = GenOp {
             name : "push".into(),
             op: |env, _ | { 
-                let l = env.locals.len() - 1;
-                env.locals[l].push(9);
+                env.locals.last_mut().unwrap().push(9);
                 Ok(())
             },
         };
@@ -725,12 +724,11 @@ mod tests {
         let push_stack : GenOp<u8, u8> = GenOp {
             name : "push".into(),
             op: |env, ps | { 
-                let l = env.locals.len() - 1;
                 if let Slot::Local(0) = ps[0] {
-                    env.locals[l].push(0);
+                    env.locals.last_mut().unwrap().push(0);
                 }
                 if let Slot::Local(1) = ps[0] {
-                    env.locals[l].push(1);
+                    env.locals.last_mut().unwrap().push(1);
                 }
                 Ok(())
             },
