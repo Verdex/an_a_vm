@@ -314,7 +314,7 @@ fn get_slot<T : Clone>(slot : &Slot, locals : Cow<Vec<T>>, ret : Cow<Option<T>>)
     match slot { 
         Slot::Return => {
             match ret {
-                Cow::Borrowed(Some(ref v)) => Ok(v.clone()),
+                Cow::Borrowed(Some(v)) => Ok(v.clone()),
                 Cow::Owned(Some(v)) => Ok(v),
                 _ => Err(Box::new(|trace| VmError::AccessMissingReturn(trace))),
             }
