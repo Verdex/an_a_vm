@@ -13,6 +13,7 @@ pub enum VmError {
     AccessMissingLocal(usize, StackTrace),
     GenOpError(Box<str>, Box<dyn std::error::Error>, StackTrace),
     TopLevelYield(usize),
+    AccessMissingCoroutine(usize, StackTrace),
 }
 
 impl std::fmt::Display for VmError {
@@ -38,6 +39,8 @@ impl std::fmt::Display for VmError {
                 write!(f, "GenOp {} encountered error {}: \n{}", name, error, d(trace)),
             VmError::TopLevelYield(ip) =>
                 write!(f, "Top Level Yield no supported at instruction: {}", ip),
+            VmError::AccessMissingCoroutine(coroutine, trace) =>
+                write!(f, "Attempting to access missing coroutine {}: \n{}", coroutine, d(trace)),
         }
     }
 }
