@@ -14,6 +14,7 @@ pub enum VmError {
     GenOpError(Box<str>, Box<dyn std::error::Error>, StackTrace),
     TopLevelYield(usize),
     AccessMissingCoroutine(usize, StackTrace),
+    ResumeFinishedCoroutine(usize, StackTrace),
 }
 
 impl std::fmt::Display for VmError {
@@ -41,6 +42,8 @@ impl std::fmt::Display for VmError {
                 write!(f, "Top Level Yield no supported at instruction: {}", ip),
             VmError::AccessMissingCoroutine(coroutine, trace) =>
                 write!(f, "Attempting to access missing coroutine {}: \n{}", coroutine, d(trace)),
+            VmError::ResumeFinishedCoroutine(coroutine, trace) =>
+                write!(f, "Attempting to resume finished coroutine {}: \n{}", coroutine, d(trace)),
         }
     }
 }
