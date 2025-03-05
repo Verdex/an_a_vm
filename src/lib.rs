@@ -65,10 +65,8 @@ pub enum Op {
     Yield(Slot),
     FinishCoroutine,
     Resume(usize),
-    // TODO 
-    // set branch on finished coroutine (target coroutine : usize) 
+    FinishSetBranch(usize),
     // TODO  ? dup, swap, drop, move, push_from_ret
-    //
 }
 
 pub struct Fun {
@@ -324,6 +322,18 @@ impl<T : Clone, S> Vm<T, S> {
                             return Err(VmError::ResumeFinishedCoroutine(coroutine, stack_trace(fun_stack, &self.funs)))
                         },
                     }
+                },
+                Op::FinishSetBranch(coroutine) => {
+                    if coroutine >= coroutines.last().unwrap().len() {
+                        fun_stack.push(RetAddr{ fun, instr: ip });
+                        return Err(VmError::AccessMissingCoroutine(coroutine, stack_trace(fun_stack, &self.funs)));
+                    }
+
+                    match coroutines.last().unwrap()[coroutine] {
+                        Coroutine::Finished => { branch = true; },
+                        Coroutine::Active { .. } => { branch = false; },
+                    }
+
                 },
             }
         }
