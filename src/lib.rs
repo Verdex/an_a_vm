@@ -333,7 +333,6 @@ impl<T : Clone, S> Vm<T, S> {
                         Coroutine::Finished => { branch = true; },
                         Coroutine::Active { .. } => { branch = false; },
                     }
-
                 },
             }
         }
