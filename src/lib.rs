@@ -307,7 +307,7 @@ impl<T : Clone, S> Vm<T, S> {
                     }
                 },
                 Op::Resume(coroutine) => {
-                    if coroutine >= coroutines.len() {
+                    if coroutine >= coroutines.last().unwrap().len() {
                         fun_stack.push(RetAddr{ fun, instr: ip });
                         return Err(VmError::AccessMissingCoroutine(coroutine, stack_trace(fun_stack, &self.funs)));
                     }
