@@ -311,7 +311,19 @@ impl<T : Clone, S> Vm<T, S> {
                         fun_stack.push(RetAddr{ fun, instr: ip });
                         return Err(VmError::AccessMissingCoroutine(coroutine, stack_trace(fun_stack, &self.funs)));
                     }
-                    todo!()
+                    match coroutines.last_mut().unwrap().remove(coroutine) { 
+                        Coroutine::Active { locals: c_locals, ip: c_ip, fun: c_fun, coroutines: c_cs } => {
+                            fun_stack.push(RetAddr { fun, instr: ip + 1 });
+                            fun = c_fun;
+                            ip = c_ip;
+                            locals.push(c_locals);
+                            coroutines.push(c_cs);
+                        },
+                        Coroutine::Finished => {
+                            fun_stack.push(RetAddr{ fun, instr: ip });
+                            return Err(VmError::ResumeFinishedCoroutine(coroutine, stack_trace(fun_stack, &self.funs)))
+                        },
+                    }
                 },
             }
         }
