@@ -339,6 +339,44 @@ impl<T : Clone, S> Vm<T, S> {
                     }
                     ip += 1;
                 },
+                Op::Drop(local) if local < locals.last().unwrap().len() => {
+                    locals.last_mut().unwrap().remove(local);
+                    ip += 1;
+                },
+                Op::Drop(local) => {
+                    fun_stack.push(RetAddr{ fun, instr: ip });
+                    return Err(VmError::AccessMissingLocal(local, stack_trace(fun_stack, &self.funs)));
+                },
+                Op::Dup(local) if local < locals.last().unwrap().len() => {
+                    let target = locals.last_mut().unwrap()[local].clone();
+                    locals.last_mut().unwrap().push(target);
+                    ip += 1;
+                },
+                Op::Dup(local) => {
+                    fun_stack.push(RetAddr{ fun, instr: ip });
+                    return Err(VmError::AccessMissingLocal(local, stack_trace(fun_stack, &self.funs)));
+                },
+                Op::Swap(a, b) if a < locals.last().unwrap().len() && b < locals.last().unwrap().len() => {
+                    locals.last_mut().unwrap().swap(a, b);
+                    ip += 1;
+                },
+                Op::Swap(a, b) if b < locals.last().unwrap().len() => {
+                    fun_stack.push(RetAddr{ fun, instr: ip });
+                    return Err(VmError::AccessMissingLocal(a, stack_trace(fun_stack, &self.funs)));
+                },
+                Op::Swap(_, b) => {
+                    fun_stack.push(RetAddr{ fun, instr: ip });
+                    return Err(VmError::AccessMissingLocal(b, stack_trace(fun_stack, &self.funs)));
+                },
+                Op::PushRet if ret.is_some() => {
+                    locals.last_mut().unwrap().push(ret.unwrap());
+                    ret = None;
+                    ip += 1;
+                },
+                Op::PushRet => {
+                    fun_stack.push(RetAddr{ fun, instr: ip });
+                    return Err(VmError::AccessMissingReturn(stack_trace(fun_stack, &self.funs)));
+                },
             }
         }
     }
