@@ -334,6 +334,7 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                         Coroutine::Active { .. } => { branch = false; },
                     }
+                    ip += 1;
                 },
             }
         }
