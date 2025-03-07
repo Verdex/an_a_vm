@@ -193,12 +193,7 @@ impl<T : Clone, S> Vm<T, S> {
                     locals.push(new_locals);
                     coroutines.push(vec![]);
                 },
-                Op::DynCall(ref params) => {
-                    if dyn_call.is_none() {
-                        fun_stack.push(RetAddr { fun, instr: ip });
-                        return Err(VmError::DynFunDoesNotExist(stack_trace(fun_stack, &self.funs)));
-                    }
-
+                Op::DynCall(ref params) if dyn_call.is_some() => {
                     fun_stack.push(RetAddr { fun, instr: ip + 1 });
                     fun = dyn_call.unwrap(); 
                     ip = 0;
@@ -214,6 +209,10 @@ impl<T : Clone, S> Vm<T, S> {
                     }
                     locals.push(new_locals);
                     coroutines.push(vec![]);
+                },
+                Op::DynCall(_) => {
+                    fun_stack.push(RetAddr { fun, instr: ip });
+                    return Err(VmError::DynFunDoesNotExist(stack_trace(fun_stack, &self.funs)));
                 },
                 Op::ReturnSlot(ref slot) => {
                     coroutines.pop().unwrap();
@@ -305,11 +304,7 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                     }
                 },
-                Op::Resume(coroutine) => {
-                    if coroutine >= coroutines.last().unwrap().len() {
-                        fun_stack.push(RetAddr{ fun, instr: ip });
-                        return Err(VmError::AccessMissingCoroutine(coroutine, stack_trace(fun_stack, &self.funs)));
-                    }
+                Op::Resume(coroutine) if coroutine < coroutines.last().unwrap().len() => {
                     match coroutines.last_mut().unwrap().remove(coroutine) { 
                         Coroutine::Active { locals: c_locals, ip: c_ip, fun: c_fun, coroutines: c_cs } => {
                             fun_stack.push(RetAddr { fun, instr: ip + 1 });
@@ -324,12 +319,11 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                     }
                 },
-                Op::FinishSetBranch(coroutine) => {
-                    if coroutine >= coroutines.last().unwrap().len() {
-                        fun_stack.push(RetAddr{ fun, instr: ip });
-                        return Err(VmError::AccessMissingCoroutine(coroutine, stack_trace(fun_stack, &self.funs)));
-                    }
-
+                Op::Resume(coroutine) => {
+                    fun_stack.push(RetAddr{ fun, instr: ip });
+                    return Err(VmError::AccessMissingCoroutine(coroutine, stack_trace(fun_stack, &self.funs)));
+                },
+                Op::FinishSetBranch(coroutine) if coroutine < coroutines.last().unwrap().len() => {
                     match coroutines.last().unwrap()[coroutine] {
                         Coroutine::Finished => { 
                             branch = true; 
@@ -338,6 +332,10 @@ impl<T : Clone, S> Vm<T, S> {
                         Coroutine::Active { .. } => { branch = false; },
                     }
                     ip += 1;
+                },
+                Op::FinishSetBranch(coroutine) => { 
+                    fun_stack.push(RetAddr{ fun, instr: ip });
+                    return Err(VmError::AccessMissingCoroutine(coroutine, stack_trace(fun_stack, &self.funs)));
                 },
                 Op::Drop(local) if local < locals.last().unwrap().len() => {
                     locals.last_mut().unwrap().remove(local);
