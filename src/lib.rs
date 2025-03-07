@@ -117,8 +117,6 @@ impl<T : Clone, S> Vm<T, S> {
         std::mem::replace(&mut self.globals, globals)
     }
 
-    // TODO append globals?
-
     pub fn run(&mut self, entry : usize) -> Result<Option<T>, VmError> {
         let mut fun_stack : Vec<RetAddr> = vec![];
         let mut locals : Vec<Vec<T>> = vec![]; 
