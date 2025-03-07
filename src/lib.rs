@@ -66,7 +66,10 @@ pub enum Op {
     FinishCoroutine,
     Resume(usize),
     FinishSetBranch(usize),
-    // TODO  ? dup, swap, drop, move, push_from_ret
+    DropLocal(usize),
+    DupLocal(usize),
+    SwapLocal(usize, usize),
+    PushRetToLocal,
 }
 
 pub struct Fun {
