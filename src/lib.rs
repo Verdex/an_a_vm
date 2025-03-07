@@ -330,7 +330,10 @@ impl<T : Clone, S> Vm<T, S> {
                     }
 
                     match coroutines.last().unwrap()[coroutine] {
-                        Coroutine::Finished => { branch = true; },
+                        Coroutine::Finished => { 
+                            branch = true; 
+                            coroutines.last_mut().unwrap().remove(coroutine);
+                        },
                         Coroutine::Active { .. } => { branch = false; },
                     }
                 },
