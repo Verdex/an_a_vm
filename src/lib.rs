@@ -63,13 +63,13 @@ pub enum Op {
     Branch(usize),
     DynCall(Vec<Slot>),
     Yield(Slot),
-    FinishCoroutine,
+    Finish,
     Resume(usize),
     FinishSetBranch(usize),
-    DropLocal(usize),
-    DupLocal(usize),
-    SwapLocal(usize, usize),
-    PushRetToLocal,
+    Drop(usize),
+    Dup(usize),
+    Swap(usize, usize),
+    PushRet,
 }
 
 pub struct Fun {
@@ -289,7 +289,7 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                     }
                 },
-                Op::FinishCoroutine => {
+                Op::Finish => {
                     match fun_stack.pop() {
                         None => {
                             // Note: Top level yields are not supported.
