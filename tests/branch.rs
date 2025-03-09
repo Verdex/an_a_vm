@@ -1,19 +1,9 @@
+
+mod common;
+
 use an_a_vm::*;
 use an_a_vm::data::*;
 
-fn gen_set_branch<T, S>() -> GenOp<T, S> {
-    GenOp {
-        name: "set".into(),
-        op: |env, _| { *env.branch = true; Ok(()) },
-    }
-}
-
-fn gen_unset_branch<T, S>() -> GenOp<T, S> {
-    GenOp {
-        name: "unset".into(),
-        op: |env, _| { *env.branch = false; Ok(()) },
-    }
-}
 
 #[test]
 fn should_branch() {
@@ -21,8 +11,8 @@ fn should_branch() {
     const U : usize = 1;
     const P : usize = 2;
 
-    let set_branch: GenOp<u8, u8> = gen_set_branch();
-    let unset_branch: GenOp<u8, u8> = gen_unset_branch();
+    let set_branch: GenOp<u8, u8> = common::gen_set_branch();
+    let unset_branch: GenOp<u8, u8> = common::gen_unset_branch();
 
     let push_stack : GenOp<u8, u8> = GenOp {
         name : "push".into(),

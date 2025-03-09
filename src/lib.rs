@@ -340,20 +340,6 @@ fn stack_trace(stack : Vec<RetAddr>, fun_map : &[Fun]) -> StackTrace {
 mod tests {
     use super::*;
 
-    fn gen_set_branch<T, S>() -> GenOp<T, S> {
-        GenOp {
-            name: "set".into(),
-            op: |env, _| { *env.branch = true; Ok(()) },
-        }
-    }
-
-    fn gen_unset_branch<T, S>() -> GenOp<T, S> {
-        GenOp {
-            name: "unset".into(),
-            op: |env, _| { *env.branch = false; Ok(()) },
-        }
-    }
-
     fn gen_set_branch_on_zero<S>() -> GenOp<u8, S> {
         GenOp {
             name: "bz".into(),

@@ -1,23 +1,13 @@
 
+mod common;
+
 use an_a_vm::*;
 use an_a_vm::data::*;
 
-fn gen_push_global<T : Copy>() -> GenOp<T, T> {
-    GenOp {
-        name: "push global".into(),
-        op: |env, params| { 
-            if let [Slot::Local(s)] = &params[..] {
-                let v = env.globals[*s];
-                env.locals.last_mut().unwrap().push(v);
-            }
-            Ok(())
-        },
-    }
-}
 
 #[test]
 fn should_push_return() {
-    let push_from_global = gen_push_global();
+    let push_from_global = common::gen_push_global();
 
     let one = Fun { 
         name: "one".into(),
