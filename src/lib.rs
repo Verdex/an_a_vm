@@ -335,8 +335,3 @@ fn stack_trace(stack : Vec<RetAddr>, fun_map : &[Fun]) -> StackTrace {
     }
     trace
 }
-
-#[cfg(test)]
-mod tests {
-
-}
