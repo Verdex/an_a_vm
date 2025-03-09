@@ -3,6 +3,20 @@ mod tests {
     use an_a_vm::*;
     use an_a_vm::data::*;
 
+    fn gen_set_branch<T, S>() -> GenOp<T, S> {
+        GenOp {
+            name: "set".into(),
+            op: |env, _| { *env.branch = true; Ok(()) },
+        }
+    }
+
+    fn gen_unset_branch<T, S>() -> GenOp<T, S> {
+        GenOp {
+            name: "unset".into(),
+            op: |env, _| { *env.branch = false; Ok(()) },
+        }
+    }
+
     #[test]
     fn should_branch() {
         const S : usize = 0;
