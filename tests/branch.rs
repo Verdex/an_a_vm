@@ -53,6 +53,57 @@ fn should_branch() {
 }
 
 #[test]
+fn should_loop() {
+    const INC : usize = 0;
+    const DEC : usize = 1;
+    const PUSH : usize = 2;
+    const SBE : usize = 3;
+    const SET : usize = 4;
+
+    let inc = common::gen_inc();
+    let dec = common::gen_dec();
+    let push_from_global = common::gen_push_global();
+    let set_branch_on_equal = common::gen_set_branch_on_equal();
+    let set_branch = common::gen_set_branch();
+
+    let main = Fun { 
+        name: "main".into(),
+        instrs: vec![
+            Op::Gen(PUSH, vec![Slot::Local(0)]),
+            Op::Gen(PUSH, vec![Slot::Local(0)]),
+            Op::Gen(PUSH, vec![Slot::Local(1)]),
+            Op::Gen(SBE, vec![Slot::Local(0), Slot::Local(2)]),
+            Op::Branch(19), 
+            Op::Gen(INC, vec![Slot::Local(1)]),
+            Op::PushRet,
+            Op::Swap(1, 3),
+            Op::Drop(3),
+            Op::Gen(INC, vec![Slot::Local(1)]),
+            Op::PushRet,
+            Op::Swap(1, 3),
+            Op::Drop(3),
+            Op::Gen(DEC, vec![Slot::Local(2)]),
+            Op::PushRet,
+            Op::Swap(2, 3),
+            Op::Drop(3),
+            Op::Gen(SET, vec![]),
+            Op::Branch(3), 
+            Op::ReturnSlot(Slot::Local(1)),
+        ],
+    };
+
+    let mut vm : Vm<u8, u8> = Vm::new(
+        vec![main], 
+        vec![inc, dec, push_from_global, set_branch_on_equal, set_branch]);
+
+    vm.with_globals(vec![0, 10]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 20);
+}
+
+#[test]
 fn should_not_branch_on_active_coroutine() {
     let push_from_global = common::gen_push_global();
 
