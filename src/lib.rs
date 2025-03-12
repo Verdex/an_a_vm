@@ -39,6 +39,7 @@ impl<T : Clone, S> Vm<T, S> {
     }
 
     pub fn run(&mut self, entry : usize) -> Result<Option<T>, VmError> {
+        // TODO : create frame stack, can probably get rid of fun_stack 
         let mut fun_stack : Vec<RetAddr> = vec![];
         let mut locals : Vec<Vec<T>> = vec![]; 
         let mut ip : usize = 0;
