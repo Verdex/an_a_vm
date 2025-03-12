@@ -214,6 +214,8 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                         Some(ret_addr) => {
                             coroutines.pop().unwrap();
+                            locals.pop().unwrap();
+
                             fun = ret_addr.fun;
                             ip = ret_addr.instr;
                             ret = None;
