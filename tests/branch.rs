@@ -51,3 +51,41 @@ fn should_branch() {
 
     assert_eq!(data, 1);
 }
+
+#[test]
+fn should_not_branch_on_active_coroutine() {
+}
+
+#[test]
+fn should_branch_on_finished_coroutine() {
+    let push_from_global = common::gen_push_global();
+
+    let co = Fun {
+        name: "co".into(),
+        instrs: vec![
+            Op::Finish,
+        ],
+    };
+
+    let main = Fun { 
+        name: "main".into(),
+        instrs: vec![
+            Op::Call(1, vec![]),
+            Op::FinishSetBranch(0),
+            Op::Branch(4),
+            Op::Gen(0, vec![Slot::Local(0)]),
+            Op::Gen(0, vec![Slot::Local(1)]),
+            Op::ReturnSlot(Slot::Local(0)),
+        ],
+    };
+
+    let mut vm : Vm<u8, u8> = Vm::new(
+        vec![main, co], 
+        vec![push_from_global]);
+
+    vm.with_globals(vec![1, 3]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 3);
+}
