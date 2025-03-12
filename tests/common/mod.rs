@@ -54,9 +54,22 @@ pub fn gen_push_into_global<T : Copy>() -> GenOp<T, T> {
     }
 }
 
+pub fn gen_inc<S>() -> GenOp<u8, S> {
+    GenOp {
+        name: "inc".into(),
+        op: | env, params |  { 
+            if let [Slot::Local(s)] = &params[..] {
+                let a = &env.locals.last().unwrap()[*s];
+                *env.ret = Some(a + 1);
+            }
+            Ok(())
+        },
+    }
+}
+
 pub fn gen_dec<S>() -> GenOp<u8, S> {
     GenOp {
-        name: "mul".into(),
+        name: "dec".into(),
         op: | env, params |  { 
             if let [Slot::Local(s)] = &params[..] {
                 let a = &env.locals.last().unwrap()[*s];
@@ -89,6 +102,20 @@ pub fn gen_add<S>() -> GenOp<u8, S> {
                 let a = &env.locals.last().unwrap()[*s1];
                 let b = &env.locals.last().unwrap()[*s2];
                 *env.ret = Some(*a + *b);
+            }
+            Ok(())
+        },
+    }
+}
+
+pub fn gen_set_branch_on_equal<S>() -> GenOp<u8, S> {
+    GenOp {
+        name: "set branch on equal".into(),
+        op: | env, params |  { 
+            if let [Slot::Local(s1), Slot::Local(s2)] = &params[..] {
+                let a = &env.locals.last().unwrap()[*s1];
+                let b = &env.locals.last().unwrap()[*s2];
+                *env.branch = *a == *b;
             }
             Ok(())
         },
