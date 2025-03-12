@@ -121,3 +121,16 @@ pub fn gen_set_branch_on_equal<S>() -> GenOp<u8, S> {
         },
     }
 }
+
+pub fn gen_set_dyn_call<S>() -> GenOp<usize, S> {
+    GenOp {
+        name: "set dyn call".into(),
+        op: |env, params| {
+            if let [Slot::Local(s)] = &params[..] {
+                let v = &env.locals.last().unwrap()[*s];
+                *env.dyn_call = Some(*v);
+            }
+            Ok(())
+        },
+    }
+}
