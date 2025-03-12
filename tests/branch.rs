@@ -121,3 +121,41 @@ fn should_branch_on_finished_coroutine() {
 
     assert_eq!(data, 3);
 }
+
+#[test]
+fn should_branch_on_finished_coroutine_with_active_coroutine_present() {
+    let push_from_global = common::gen_push_global();
+
+    let co = Fun {
+        name: "co".into(),
+        instrs: vec![
+            Op::Gen(0, vec![Slot::Local(0)]),
+            Op::Yield(Slot::Local(0)),
+            Op::Finish,
+        ],
+    };
+
+    let main = Fun { 
+        name: "main".into(),
+        instrs: vec![
+            Op::Call(1, vec![]),
+            Op::Call(1, vec![]),
+            Op::Resume(1),
+            Op::FinishSetBranch(1),
+            Op::Branch(6),
+            Op::Gen(0, vec![Slot::Local(1)]),
+            Op::Gen(0, vec![Slot::Local(2)]),
+            Op::ReturnSlot(Slot::Local(0)),
+        ],
+    };
+
+    let mut vm : Vm<u8, u8> = Vm::new(
+        vec![main, co], 
+        vec![push_from_global]);
+
+    vm.with_globals(vec![1, 3, 5]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 5);
+}
