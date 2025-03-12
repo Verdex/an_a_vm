@@ -210,3 +210,6 @@ fn should_branch_on_finished_coroutine_with_active_coroutine_present() {
 
     assert_eq!(data, 5);
 }
+
+// TODO branch on finnished coroutine inside of function while return function has active coroutine in same slot
+// TODO same as above but for already resumed coroutine 
