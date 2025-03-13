@@ -12,13 +12,13 @@ fn should_swap() {
     let main = Fun {
         name: "main".into(),
         instrs: vec![
-            Op::Gen(0, vec![Slot::Local(0)]),
-            Op::Gen(0, vec![Slot::Local(1)]),
-            Op::Gen(0, vec![Slot::Local(2)]),
-            Op::Gen(0, vec![Slot::Local(3)]),
+            Op::Gen(0, vec![0]),
+            Op::Gen(0, vec![1]),
+            Op::Gen(0, vec![2]),
+            Op::Gen(0, vec![3]),
             Op::Swap(0, 3),
             Op::Swap(1, 2),
-            Op::Gen(1, vec![Slot::Local(3), Slot::Local(2)]),
+            Op::Gen(1, vec![3, 2]),
             Op::ReturnSlot(Slot::Return),
         ],
     };
@@ -41,7 +41,7 @@ fn should_dup() {
     let main = Fun {
         name: "main".into(),
         instrs: vec![
-            Op::Gen(0, vec![Slot::Local(0)]),
+            Op::Gen(0, vec![0]),
             Op::Dup(0),                      
             Op::ReturnSlot(Slot::Local(1)),
         ],
@@ -65,9 +65,9 @@ fn should_drop() {
     let main = Fun {
         name: "main".into(),
         instrs: vec![
-            Op::Gen(0, vec![Slot::Local(0)]), // push 3
-            Op::Drop(0),                      // clear 3 
-            Op::Gen(0, vec![Slot::Local(1)]), // push 7
+            Op::Gen(0, vec![0]), // push 3
+            Op::Drop(0),         // clear 3 
+            Op::Gen(0, vec![1]), // push 7
             Op::ReturnSlot(Slot::Local(0)),
         ],
     };
@@ -90,7 +90,7 @@ fn should_push_return() {
     let one = Fun { 
         name: "one".into(),
         instrs: vec![
-            Op::Gen(0, vec![Slot::Local(0)]), 
+            Op::Gen(0, vec![0]), 
             Op::ReturnSlot(Slot::Local(0)),
         ],
     };
