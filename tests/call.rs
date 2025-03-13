@@ -202,6 +202,47 @@ fn should_order_params() {
 }
 
 #[test]
+fn should_order_params_with_dyn_call() {
+    let push = common::gen_push_global();
+    let add = common::gen_add();
+    let mul = common::gen_mul();
+    let set_dyn_call = common::gen_set_dyn_call();
+
+    let other = Fun { 
+        name: "other".into(),
+        instrs: vec![
+            Op::Gen(2, vec![Slot::Local(0), Slot::Local(1)]), // 3 + 5
+            Op::PushRet,
+            Op::Gen(3, vec![Slot::Local(3), Slot::Local(2)]), // 8 * 7
+            Op::ReturnSlot(Slot::Return),
+        ],
+    };
+
+    let main = Fun { 
+        name: "main".into(),
+        instrs: vec![
+            Op::Gen(0, vec![Slot::Local(1)]),
+            Op::Gen(0, vec![Slot::Local(2)]),
+            Op::Gen(0, vec![Slot::Local(3)]),
+            Op::Gen(0, vec![Slot::Local(0)]),
+            Op::Gen(1, vec![Slot::Local(3)]),
+            Op::DynCall(vec![Slot::Local(0), Slot::Local(1), Slot::Local(2)]), // other(3, 5, 7)
+            Op::ReturnSlot(Slot::Return),
+        ],
+    };
+
+    let mut vm : Vm<usize, usize> = Vm::new(
+        vec![main, other], 
+        vec![push, set_dyn_call, add, mul]);
+
+    vm.with_globals(vec![1, 3, 5, 7]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 56);
+}
+
+#[test]
 fn should_call_with_params() {
     let push = common::gen_push_global();
     let add = common::gen_add();
