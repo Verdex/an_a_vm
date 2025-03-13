@@ -80,7 +80,7 @@ pub fn gen_dec<S>() -> GenOp<u8, S> {
     }
 }
 
-pub fn gen_mul<S>() -> GenOp<u8, S> {
+pub fn gen_mul<T : std::ops::Mul<Output = T> + Copy, S>() -> GenOp<T, S> {
     GenOp {
         name: "mul".into(),
         op: | env, params |  { 
@@ -94,7 +94,7 @@ pub fn gen_mul<S>() -> GenOp<u8, S> {
     }
 }
 
-pub fn gen_add<S>() -> GenOp<u8, S> {
+pub fn gen_add<T : std::ops::Add<Output = T> + Copy, S>() -> GenOp<T, S> {
     GenOp {
         name: "add".into(),
         op: | env, params |  { 
