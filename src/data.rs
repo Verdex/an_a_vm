@@ -5,7 +5,7 @@ pub enum Slot {
 }
 
 pub enum Op {
-    Gen(usize, Vec<Slot>),
+    Gen(usize, Vec<usize>),
     Call(usize, Vec<Slot>),
     ReturnSlot(Slot),
     Return,
@@ -36,5 +36,5 @@ pub struct OpEnv<'a, T, S> {
 
 pub struct GenOp<T, S> {
     pub name : Box<str>,
-    pub op : for<'a> fn(env : OpEnv<'a, T, S>, params : &Vec<Slot>) -> Result<(), Box<dyn std::error::Error>>,
+    pub op : for<'a> fn(env : OpEnv<'a, T, S>, params : &Vec<usize>) -> Result<(), Box<dyn std::error::Error>>,
 }
