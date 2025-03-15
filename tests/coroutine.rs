@@ -113,7 +113,9 @@ fn should_handle_params() {
             Op::PushRet,
             Op::Resume(0),
             Op::PushRet,
-            Op::ReturnSlot(1), // TODO
+            Op::Gen(2, vec![1, 0]),
+            Op::PushRet,
+            Op::ReturnSlot(2), 
         ],
     };
 
@@ -125,7 +127,7 @@ fn should_handle_params() {
 
     let data = vm.run(0).unwrap().unwrap();
 
-    assert_eq!(data, 56);
+    assert_eq!(data, 448);
 }
 
 #[test]
@@ -164,7 +166,9 @@ fn should_handle_dyn_call_params() {
             Op::PushRet,
             Op::Resume(0),
             Op::PushRet,
-            Op::ReturnSlot(1), // TODO
+            Op::Gen(2, vec![0, 1]),
+            Op::PushRet,
+            Op::ReturnSlot(2), 
         ],
     };
 
@@ -176,7 +180,7 @@ fn should_handle_dyn_call_params() {
 
     let data = vm.run(0).unwrap().unwrap();
 
-    assert_eq!(data, 56);
+    assert_eq!(data, 448);
 }
 
 // TODO 
