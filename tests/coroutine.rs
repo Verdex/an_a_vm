@@ -22,7 +22,7 @@ fn should_yield() {
         instrs: vec![
             Op::Call(1, vec![]),
             Op::PushRet,
-            Op::ReturnSlot(0),
+            Op::ReturnLocal(0),
         ],
     };
 
@@ -66,7 +66,7 @@ fn should_resume() {
             Op::PushRet,
             Op::Gen(1, vec![0, 1]),
             Op::PushRet,
-            Op::ReturnSlot(2),
+            Op::ReturnLocal(2),
         ],
     };
 
@@ -115,7 +115,7 @@ fn should_handle_params() {
             Op::PushRet,
             Op::Gen(2, vec![1, 0]),
             Op::PushRet,
-            Op::ReturnSlot(2), 
+            Op::ReturnLocal(2), 
         ],
     };
 
@@ -168,7 +168,7 @@ fn should_handle_dyn_call_params() {
             Op::PushRet,
             Op::Gen(2, vec![0, 1]),
             Op::PushRet,
-            Op::ReturnSlot(2), 
+            Op::ReturnLocal(2), 
         ],
     };
 

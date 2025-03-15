@@ -20,7 +20,7 @@ fn should_swap() {
             Op::Swap(1, 2),
             Op::Gen(1, vec![3, 2]),
             Op::PushRet,
-            Op::ReturnSlot(4),
+            Op::ReturnLocal(4),
         ],
     };
 
@@ -44,7 +44,7 @@ fn should_dup() {
         instrs: vec![
             Op::Gen(0, vec![0]),
             Op::Dup(0),                      
-            Op::ReturnSlot(1),
+            Op::ReturnLocal(1),
         ],
     };
 
@@ -69,7 +69,7 @@ fn should_drop() {
             Op::Gen(0, vec![0]), // push 3
             Op::Drop(0),         // clear 3 
             Op::Gen(0, vec![1]), // push 7
-            Op::ReturnSlot(0),
+            Op::ReturnLocal(0),
         ],
     };
 
@@ -92,7 +92,7 @@ fn should_push_return() {
         name: "one".into(),
         instrs: vec![
             Op::Gen(0, vec![0]), 
-            Op::ReturnSlot(0),
+            Op::ReturnLocal(0),
         ],
     };
 
@@ -101,7 +101,7 @@ fn should_push_return() {
         instrs: vec![
             Op::Call(1, vec![]),
             Op::PushRet,
-            Op::ReturnSlot(0),
+            Op::ReturnLocal(0),
         ],
     };
 

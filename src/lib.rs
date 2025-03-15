@@ -133,7 +133,7 @@ impl<T : Clone, S> Vm<T, S> {
                     fun_stack.push(RetAddr { fun, instr: ip });
                     return Err(VmError::DynFunDoesNotExist(stack_trace(fun_stack, &self.funs)));
                 },
-                Op::ReturnSlot(slot) => {
+                Op::ReturnLocal(slot) => {
                     coroutines.pop().unwrap();
                     let current_locals = locals.pop().unwrap();
 

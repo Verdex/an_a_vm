@@ -33,15 +33,15 @@ fn should_branch() {
             Op::Gen(S, vec![]), 
             Op::Branch(4),         
             Op::Gen(P, vec![0]),
-            Op::ReturnSlot(0),
+            Op::ReturnLocal(0),
 
             Op::Gen(U, vec![]),
             Op::Branch(8),         
             Op::Gen(P, vec![1]),
-            Op::ReturnSlot(0),
+            Op::ReturnLocal(0),
 
             Op::Gen(P, vec![0]),
-            Op::ReturnSlot(0),
+            Op::ReturnLocal(0),
         ],
     };
 
@@ -88,7 +88,7 @@ fn should_loop() {
             Op::Drop(3),
             Op::Gen(SET, vec![]),
             Op::Branch(3), 
-            Op::ReturnSlot(1),
+            Op::ReturnLocal(1),
         ],
     };
 
@@ -124,7 +124,7 @@ fn should_not_branch_on_active_coroutine() {
             Op::Branch(4),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
-            Op::ReturnSlot(0),
+            Op::ReturnLocal(0),
         ],
     };
 
@@ -158,7 +158,7 @@ fn should_branch_on_finished_coroutine() {
             Op::Branch(4),
             Op::Gen(0, vec![0]),
             Op::Gen(0, vec![1]),
-            Op::ReturnSlot(0),
+            Op::ReturnLocal(0),
         ],
     };
 
@@ -196,7 +196,7 @@ fn should_branch_on_finished_coroutine_with_active_coroutine_present() {
             Op::Branch(6),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
-            Op::ReturnSlot(0),
+            Op::ReturnLocal(0),
         ],
     };
 
@@ -233,7 +233,7 @@ fn should_branch_on_finished_coroutine_in_function_where_parent_has_active_corou
             Op::Branch(5),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
-            Op::ReturnSlot(0),
+            Op::ReturnLocal(0),
         ],
     };
 
@@ -243,7 +243,7 @@ fn should_branch_on_finished_coroutine_in_function_where_parent_has_active_corou
             Op::Call(2, vec![]),
             Op::Call(1, vec![]),
             Op::PushRet,
-            Op::ReturnSlot(0),
+            Op::ReturnLocal(0),
         ],
     };
 
@@ -281,7 +281,7 @@ fn should_branch_on_finished_coroutine_in_dyn_function_where_parent_has_active_c
             Op::Branch(5),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
-            Op::ReturnSlot(0),
+            Op::ReturnLocal(0),
         ],
     };
 
@@ -294,7 +294,7 @@ fn should_branch_on_finished_coroutine_in_dyn_function_where_parent_has_active_c
             Op::DynCall(vec![]),
             Op::Call(1, vec![]),
             Op::PushRet,
-            Op::ReturnSlot(1),
+            Op::ReturnLocal(1),
         ],
     };
 
@@ -345,7 +345,7 @@ fn should_branch_on_finished_coroutine_in_resumed_coroutine_where_parent_has_act
             Op::Call(1, vec![]),
             Op::Resume(1),
             Op::PushRet,
-            Op::ReturnSlot(0),
+            Op::ReturnLocal(0),
         ],
     };
 

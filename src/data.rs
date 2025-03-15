@@ -2,7 +2,7 @@
 pub enum Op {
     Gen(usize, Vec<usize>),
     Call(usize, Vec<usize>),
-    ReturnSlot(usize), // TODO ReturnLocal
+    ReturnLocal(usize), 
     Return,
     Branch(usize),
     DynCall(Vec<usize>),
