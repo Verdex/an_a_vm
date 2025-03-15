@@ -365,17 +365,6 @@ fn should_handle_coroutine_with_interleaved_coroutines() {
     let set_branch = common::gen_set_branch();
     let add = common::gen_add();
 
-    let blarg = GenOp {
-        name: "balfg".into(),
-        op: | env, params |  { 
-            if let [s] = &params[..] {
-                let a = &env.locals.last().unwrap()[*s];
-                println!("{:?}", a);
-            }
-            Ok(())
-        },
-    };
-
     let inf = Fun {
         name: "inf".into(),
         instrs: vec![
@@ -497,7 +486,7 @@ fn should_handle_coroutine_with_interleaved_coroutines() {
 
     let mut vm : Vm<usize, usize> = Vm::new( 
         vec![main, com, inf],
-        vec![push_from_global, set_branch, add, blarg]);
+        vec![push_from_global, set_branch, add]);
 
     vm.with_globals(vec![1, 2, 3]);
 
