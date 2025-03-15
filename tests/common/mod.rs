@@ -108,7 +108,21 @@ pub fn gen_add<T : std::ops::Add<Output = T> + Copy, S>() -> GenOp<T, S> {
     }
 }
 
-pub fn gen_set_branch_on_equal<S>() -> GenOp<u8, S> {
+pub fn gen_unset_branch_on_equal<T : PartialEq, S>() -> GenOp<T, S> {
+    GenOp {
+        name: "set branch on equal".into(),
+        op: | env, params |  { 
+            if let [s1, s2] = &params[..] {
+                let a = &env.locals.last().unwrap()[*s1];
+                let b = &env.locals.last().unwrap()[*s2];
+                *env.branch = *a != *b;
+            }
+            Ok(())
+        },
+    }
+}
+
+pub fn gen_set_branch_on_equal<T : PartialEq, S>() -> GenOp<T, S> {
     GenOp {
         name: "set branch on equal".into(),
         op: | env, params |  { 
