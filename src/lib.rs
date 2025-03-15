@@ -313,14 +313,16 @@ fn get_local<T : Clone>(index: usize, locals : Cow<Vec<T>>) -> Result<T, Box<dyn
     }
 }
 
-fn stack_trace(stack : Vec<RetAddr>, fun_map : &[Fun]) -> StackTrace {
+fn stack_trace(mut stack : Vec<RetAddr>, fun_map : &[Fun]) -> StackTrace {
+    stack.last_mut().unwrap().instr += 1;
+
     let mut trace = vec![];
     for addr in stack {
         // Note:  if the function was already pushed into the stack, then
         // that means that it already resolved to a known function.  Don't
         // have to check again that the fun map has it.
         let name = fun_map[addr.fun].name.clone();
-        trace.push((name, addr.instr));
+        trace.push((name, addr.instr - 1));
     }
     trace
 }
