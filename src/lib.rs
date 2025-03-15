@@ -101,7 +101,7 @@ impl<T : Clone, S> Vm<T, S> {
                     ip = 0;
                     let mut new_locals = vec![];
                     for param in params {
-                        match get_slot(param, Cow::Borrowed(locals.last().unwrap()), Cow::Borrowed(&ret)) {
+                        match get_local(*param, Cow::Borrowed(locals.last().unwrap())) {
                             Ok(v) => { new_locals.push(v); },
                             Err(f) => { 
                                 fun_stack.push(RetAddr{ fun, instr: ip });
@@ -118,7 +118,7 @@ impl<T : Clone, S> Vm<T, S> {
                     ip = 0;
                     let mut new_locals = vec![];
                     for param in params {
-                        match get_slot(param, Cow::Borrowed(locals.last().unwrap()), Cow::Borrowed(&ret)) {
+                        match get_local(*param, Cow::Borrowed(locals.last().unwrap())) {
                             Ok(v) => { new_locals.push(v); },
                             Err(f) => { 
                                 fun_stack.push(RetAddr{ fun, instr: ip });
@@ -133,11 +133,11 @@ impl<T : Clone, S> Vm<T, S> {
                     fun_stack.push(RetAddr { fun, instr: ip });
                     return Err(VmError::DynFunDoesNotExist(stack_trace(fun_stack, &self.funs)));
                 },
-                Op::ReturnSlot(ref slot) => {
+                Op::ReturnSlot(slot) => {
                     coroutines.pop().unwrap();
                     let current_locals = locals.pop().unwrap();
 
-                    let ret_target = match get_slot(slot, Cow::Owned(current_locals), Cow::Owned(ret)) {
+                    let ret_target = match get_local(slot, Cow::Owned(current_locals)) {
                         Ok(v) => v,
                         Err(f) => { 
                             fun_stack.push(RetAddr{ fun, instr: ip });
@@ -172,13 +172,13 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                     }
                 },
-                Op::Yield(ref slot) => {
+                Op::Yield(slot) => {
                     let current_coroutines = coroutines.pop().unwrap();
                     let current_locals = locals.pop().unwrap();
                     let current_ip = ip + 1;
                     let current_fun = fun;
 
-                    let ret_target = match get_slot(slot, Cow::Borrowed(&current_locals), Cow::Owned(ret)) {
+                    let ret_target = match get_local(slot, Cow::Borrowed(&current_locals)) {
                         Ok(v) => v,
                         Err(f) => { 
                             fun_stack.push(RetAddr{ fun, instr: ip });
@@ -301,28 +301,14 @@ impl<T : Clone, S> Vm<T, S> {
     }
 }
 
-fn get_slot<T : Clone>(slot : &Slot, locals : Cow<Vec<T>>, ret : Cow<Option<T>>) 
-    -> Result<T, Box<dyn Fn(StackTrace) -> VmError>> {
-
-    match slot { 
-        Slot::Return => {
-            match ret {
-                Cow::Borrowed(Some(v)) => Ok(v.clone()),
-                Cow::Owned(Some(v)) => Ok(v),
-                _ => Err(Box::new(|trace| VmError::AccessMissingReturn(trace))),
-            }
-        },
-        Slot::Local(index) => {
-            if *index >= locals.len() {
-                let index = *index;
-                Err(Box::new(move |trace| VmError::AccessMissingLocal(index, trace)))
-            }
-            else {
-                match locals {
-                    Cow::Borrowed(locals) => Ok(locals[*index].clone()),
-                    Cow::Owned(mut locals) => Ok(locals.swap_remove(*index)),
-                }
-            }
+fn get_local<T : Clone>(index: usize, locals : Cow<Vec<T>>) -> Result<T, Box<dyn Fn(StackTrace) -> VmError>> {
+    if index >= locals.len() {
+        Err(Box::new(move |trace| VmError::AccessMissingLocal(index, trace)))
+    }
+    else {
+        match locals {
+            Cow::Borrowed(locals) => Ok(locals[index].clone()),
+            Cow::Owned(mut locals) => Ok(locals.swap_remove(index)),
         }
     }
 }
