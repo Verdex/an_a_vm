@@ -183,9 +183,100 @@ fn should_handle_dyn_call_params() {
     assert_eq!(data, 448);
 }
 
+#[test]
+fn should_preserve_active_coroutine_for_finish_set_branch() {
+    let push_from_global = common::gen_push_global();
+
+    let co = Fun {
+        name: "co".into(),
+        instrs: vec![
+            Op::Gen(0, vec![0]),
+            Op::Yield(0),
+            Op::Yield(0),
+            Op::Finish,
+        ],
+    };
+
+    let main = Fun {
+        name: "main".into(),
+        instrs: vec![
+            Op::Call(1, vec![]),
+            Op::FinishSetBranch(0),
+            Op::Branch(6),
+            Op::Resume(0),
+            Op::Gen(0, vec![1]),
+            Op::ReturnLocal(0),
+            Op::Gen(0, vec![0]),
+            Op::ReturnLocal(0),
+        ],
+    };
+
+    let mut vm : Vm<usize, usize> = Vm::new( 
+        vec![main, co],
+        vec![push_from_global]);
+
+    vm.with_globals(vec![1, 2]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 2);
+}
+
+#[test]
+fn should_remove_finished_coroutine_for_finish_set_branch() {
+    let push_from_global = common::gen_push_global();
+    let add = common::gen_add();
+
+    let co = Fun {
+        name: "co".into(),
+        instrs: vec![
+            Op::Gen(0, vec![0]),
+            Op::Gen(0, vec![1]),
+            Op::Yield(0),
+            Op::Yield(0),
+            Op::Yield(1),
+            Op::Finish,
+        ],
+    };
+
+    let main = Fun {
+        name: "main".into(),
+        instrs: vec![
+            Op::Call(1, vec![]),
+            Op::Call(1, vec![]),
+            Op::Call(1, vec![]),
+            Op::Resume(0),
+            Op::Resume(2),
+            Op::Resume(2),
+            Op::Resume(0),
+            Op::Resume(2),
+            Op::Resume(2),
+            Op::FinishSetBranch(2),
+            Op::FinishSetBranch(1),
+            Op::Resume(0),
+            Op::PushRet, // 1 on stack
+            Op::Resume(0),
+            Op::PushRet,  // 2 on stack
+            Op::Gen(1, vec![0, 1]),
+            Op::Drop(0),
+            Op::Drop(0),
+            Op::PushRet,
+            Op::ReturnLocal(0),
+        ],
+    };
+
+    let mut vm : Vm<usize, usize> = Vm::new( 
+        vec![main, co],
+        vec![push_from_global, add]);
+
+    vm.with_globals(vec![1, 2]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 3);
+}
+
 // TODO 
 // multiple coroutines interleaved inside of a coroutine
-// finish set branch kills off finished coroutine
-// finish set branch doesnt kill off active coroutine
 // resuming coroutine pulls coroutine out of order
 // yielding or finishing coroutine puts it in the end of the coroutine list
