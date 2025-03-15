@@ -276,7 +276,88 @@ fn should_remove_finished_coroutine_for_finish_set_branch() {
     assert_eq!(data, 3);
 }
 
+#[test]
+fn should_move_coroutine_position_on_resume_yield() {
+    const END : usize = 40;
+
+    let push_from_global = common::gen_push_global();
+    let set_branch = common::gen_set_branch();
+    let unset_branch_on_equal = common::gen_unset_branch_on_equal();
+
+    let co = Fun {
+        name: "co".into(),
+        instrs: vec![
+            Op::Yield(0),
+            Op::Gen(1, vec![]),
+            Op::Branch(0),
+        ],
+    };
+
+    let main = Fun {
+        name: "main".into(),
+        instrs: vec![
+            Op::Gen(0, vec![0]),
+            Op::Gen(0, vec![1]),
+            Op::Gen(0, vec![2]),
+            Op::Gen(0, vec![3]),
+
+            Op::Call(1, vec![0]),
+            Op::PushRet,
+            Op::Gen(2, vec![4, 0]),
+            Op::Branch(END),
+            Op::Drop(4),
+
+            Op::Call(1, vec![1]),
+            Op::PushRet,
+            Op::Gen(2, vec![4, 1]),
+            Op::Branch(END), 
+            Op::Drop(4),
+
+            Op::Call(1, vec![2]),
+            Op::PushRet,
+            Op::Gen(2, vec![4, 2]),
+            Op::Branch(END), 
+            Op::Drop(4),
+
+            Op::Resume(0),
+            Op::PushRet,
+            Op::Gen(2, vec![4, 0]),
+            Op::Branch(END),
+            Op::Drop(4),
+
+            Op::Resume(0),
+            Op::PushRet,
+            Op::Gen(2, vec![4, 1]),
+            Op::Branch(END),
+            Op::Drop(4),
+
+            Op::Resume(0),
+            Op::PushRet,
+            Op::Gen(2, vec![4, 2]),
+            Op::Branch(END),
+            Op::Drop(4),
+
+            Op::Resume(0),
+            Op::PushRet,
+            Op::Gen(2, vec![4, 0]),
+            Op::Branch(END),
+            Op::Drop(4),
+
+            Op::ReturnLocal(0),
+            Op::ReturnLocal(3),
+        ],
+    };
+
+    let mut vm : Vm<usize, usize> = Vm::new( 
+        vec![main, co],
+        vec![push_from_global, set_branch, unset_branch_on_equal]);
+
+    vm.with_globals(vec![1, 2, 3, 9]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 1);
+}
+
 // TODO 
 // multiple coroutines interleaved inside of a coroutine
-// resuming coroutine pulls coroutine out of order
-// yielding or finishing coroutine puts it in the end of the coroutine list
