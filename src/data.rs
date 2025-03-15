@@ -1,17 +1,12 @@
 
-pub enum Slot { 
-    Local(usize),
-    Return,
-}
-
 pub enum Op {
     Gen(usize, Vec<usize>),
-    Call(usize, Vec<Slot>),
-    ReturnSlot(Slot),
+    Call(usize, Vec<usize>),
+    ReturnLocal(usize), 
     Return,
     Branch(usize),
-    DynCall(Vec<Slot>),
-    Yield(Slot),
+    DynCall(Vec<usize>),
+    Yield(usize),
     Finish,
     Resume(usize),
     FinishSetBranch(usize),

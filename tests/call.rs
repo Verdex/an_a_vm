@@ -35,7 +35,8 @@ fn should_dynamic_call() {
         instrs: vec![
             Op::Gen(PUSH_FROM_GLOBAL, vec![1]), // get 2
             Op::Gen(ADD, vec![0, 1]),
-            Op::ReturnSlot(Slot::Return),
+            Op::PushRet,
+            Op::ReturnLocal(2),
         ],
     };
 
@@ -44,7 +45,8 @@ fn should_dynamic_call() {
         instrs: vec![
             Op::Gen(PUSH_FROM_GLOBAL, vec![0]), // get 1
             Op::Gen(ADD, vec![0, 1]),
-            Op::ReturnSlot(Slot::Return),
+            Op::PushRet,
+            Op::ReturnLocal(2),
         ],
     };
 
@@ -54,13 +56,14 @@ fn should_dynamic_call() {
             Op::Gen(PUSH_FROM_GLOBAL, vec![2]), // get 7 (now local 0)
             Op::Gen(PUSH_FROM_GLOBAL, vec![3]), // get 17 (now local 1)
             Op::Gen(ONE, vec![]),
-            Op::DynCall(vec![Slot::Local(0)]), // should add 1 to 7 
+            Op::DynCall(vec![0]),              // should add 1 to 7 
             Op::PushRet,                       // local 2 is now 8
             Op::Gen(TWO, vec![]),
-            Op::DynCall(vec![Slot::Local(1)]), // should add 2 to 17 
+            Op::DynCall(vec![1]),              // should add 2 to 17 
             Op::PushRet,                       // local 3 is now 19
             Op::Gen(ADD, vec![2, 3]),          // should add 19 to 8
-            Op::ReturnSlot(Slot::Return),
+            Op::PushRet,
+            Op::ReturnLocal(4),
         ],
     };
 
@@ -93,12 +96,13 @@ fn should_handle_multiple_calls() {
             Op::Gen(DEC, vec![0]),
             Op::PushRet,
             Op::Gen(BZ, vec![1]),
-            Op::Branch(8),
-            Op::Call(1, vec![Slot::Local(1)]),
+            Op::Branch(9),
+            Op::Call(1, vec![1]),
             Op::PushRet,
             Op::Gen(MUL, vec![0, 2]),
-            Op::ReturnSlot(Slot::Return),
-            Op::ReturnSlot(Slot::Local(0)),
+            Op::PushRet,
+            Op::ReturnLocal(3),
+            Op::ReturnLocal(0),
         ],
     };
 
@@ -106,8 +110,9 @@ fn should_handle_multiple_calls() {
         name: "main".into(),
         instrs: vec![
             Op::Gen(PUSH_FROM_GLOBAL, vec![0]),
-            Op::Call(1, vec![Slot::Local(0)]),
-            Op::ReturnSlot(Slot::Return),
+            Op::Call(1, vec![0]),
+            Op::PushRet,
+            Op::ReturnLocal(1),
         ],
     };
 
@@ -147,9 +152,9 @@ fn should_return() {
         instrs: vec![
             Op::Gen(FROM_G, vec![1]),
             Op::Gen(FROM_G, vec![2]),
-            Op::Call(1, vec![Slot::Local(0), Slot::Local(1)]),
-            Op::Gen(FROM_G, vec![3]),       // from global slot 3
-            Op::ReturnSlot(Slot::Local(2)), // from local slot 2
+            Op::Call(1, vec![0, 1]),
+            Op::Gen(FROM_G, vec![3]),  // from global slot 3
+            Op::ReturnLocal(2),        // from local slot 2
         ],
     };
 
@@ -174,8 +179,8 @@ fn should_order_params() {
         instrs: vec![
             Op::Gen(1, vec![2]),
             Op::Branch(3),
-            Op::ReturnSlot(Slot::Local(0)),
-            Op::ReturnSlot(Slot::Local(1)),
+            Op::ReturnLocal(0),
+            Op::ReturnLocal(1),
         ],
     };
 
@@ -185,8 +190,9 @@ fn should_order_params() {
             Op::Gen(0, vec![0]),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
-            Op::Call(1, vec![Slot::Local(2), Slot::Local(1), Slot::Local(0)]), // other(5, 3, 0)
-            Op::ReturnSlot(Slot::Return),
+            Op::Call(1, vec![2, 1, 0]), // other(5, 3, 0)
+            Op::PushRet,
+            Op::ReturnLocal(3),
         ],
     };
 
@@ -214,7 +220,8 @@ fn should_order_params_with_dyn_call() {
             Op::Gen(2, vec![0, 1]), // 3 + 5
             Op::PushRet,
             Op::Gen(3, vec![3, 2]), // 8 * 7
-            Op::ReturnSlot(Slot::Return),
+            Op::PushRet,
+            Op::ReturnLocal(4),
         ],
     };
 
@@ -226,8 +233,9 @@ fn should_order_params_with_dyn_call() {
             Op::Gen(0, vec![3]),
             Op::Gen(0, vec![0]),
             Op::Gen(1, vec![3]),
-            Op::DynCall(vec![Slot::Local(0), Slot::Local(1), Slot::Local(2)]), // other(3, 5, 7)
-            Op::ReturnSlot(Slot::Return),
+            Op::DynCall(vec![0, 1, 2]), // other(3, 5, 7)
+            Op::PushRet,
+            Op::ReturnLocal(4),
         ],
     };
 
@@ -253,7 +261,8 @@ fn should_call_with_params() {
             Op::Gen(1, vec![0, 1]),
             Op::PushRet,
             Op::Gen(1, vec![2, 3]),
-            Op::ReturnSlot(Slot::Return),
+            Op::PushRet,
+            Op::ReturnLocal(4),
         ],
     };
 
@@ -263,8 +272,9 @@ fn should_call_with_params() {
             Op::Gen(0, vec![0]),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
-            Op::Call(1, vec![Slot::Local(0), Slot::Local(1), Slot::Local(2)]),
-            Op::ReturnSlot(Slot::Return),
+            Op::Call(1, vec![0, 1, 2]),
+            Op::PushRet,
+            Op::ReturnLocal(3),
         ],
     };
 
@@ -294,7 +304,7 @@ fn should_call_and_return() {
         name : "ret_nine".into(),
         instrs: vec![
             Op::Gen(0, vec![]),
-            Op::ReturnSlot(Slot::Local(0)),
+            Op::ReturnLocal(0),
         ],
     };
 
@@ -302,7 +312,8 @@ fn should_call_and_return() {
         name: "main".into(),
         instrs: vec![
             Op::Call(1, vec![]),
-            Op::ReturnSlot(Slot::Return),
+            Op::PushRet,
+            Op::ReturnLocal(0),
         ],
     };
 
