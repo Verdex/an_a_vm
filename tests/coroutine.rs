@@ -12,7 +12,7 @@ fn should_yield() {
         name: "co".into(),
         instrs: vec![
             Op::Gen(0, vec![0]),
-            Op::Yield(Slot::Local(0)),
+            Op::Yield(0),
             Op::Finish,
         ],
     };
@@ -21,7 +21,8 @@ fn should_yield() {
         name: "main".into(),
         instrs: vec![
             Op::Call(1, vec![]),
-            Op::ReturnSlot(Slot::Return),
+            Op::PushRet,
+            Op::ReturnSlot(0),
         ],
     };
 
@@ -47,10 +48,11 @@ fn should_resume() {
             Op::Gen(0, vec![0]),
             Op::Gen(1, vec![0, 0]),
             Op::PushRet,
-            Op::Yield(Slot::Local(0)),
+            Op::Yield(0),
             Op::Gen(0, vec![0]),
             Op::Gen(1, vec![1, 2]),
-            Op::Yield(Slot::Return),
+            Op::PushRet,
+            Op::Yield(3),
             Op::Finish,
         ],
     };
@@ -63,7 +65,8 @@ fn should_resume() {
             Op::Resume(0),
             Op::PushRet,
             Op::Gen(1, vec![0, 1]),
-            Op::ReturnSlot(Slot::Return),
+            Op::PushRet,
+            Op::ReturnSlot(2),
         ],
     };
 
@@ -89,9 +92,10 @@ fn should_handle_params() {
         instrs: vec![
             Op::Gen(1, vec![0, 1]),
             Op::PushRet,
-            Op::Yield(Slot::Local(3)),
+            Op::Yield(3),
             Op::Gen(2, vec![3, 2]),
-            Op::Yield(Slot::Return),
+            Op::PushRet,
+            Op::Yield(4),
             Op::Finish,
         ],
     };
@@ -102,13 +106,14 @@ fn should_handle_params() {
             Op::Gen(0, vec![0]),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
-            Op::Call(1, vec![Slot::Local(0), Slot::Local(1), Slot::Local(2)]),
+            Op::Call(1, vec![0, 1, 2]),
             Op::Drop(0),
             Op::Drop(0),
             Op::Drop(0),
             Op::PushRet,
             Op::Resume(0),
-            Op::ReturnSlot(Slot::Return),
+            Op::PushRet,
+            Op::ReturnSlot(1), // TODO
         ],
     };
 
@@ -135,9 +140,10 @@ fn should_handle_dyn_call_params() {
         instrs: vec![
             Op::Gen(1, vec![0, 1]),
             Op::PushRet,
-            Op::Yield(Slot::Local(3)),
+            Op::Yield(3),
             Op::Gen(2, vec![3, 2]),
-            Op::Yield(Slot::Return),
+            Op::PushRet,
+            Op::Yield(4),
             Op::Finish,
         ],
     };
@@ -150,14 +156,15 @@ fn should_handle_dyn_call_params() {
             Op::Gen(0, vec![2]),
             Op::Gen(0, vec![3]),
             Op::Gen(3, vec![0]),
-            Op::DynCall(vec![Slot::Local(1), Slot::Local(2), Slot::Local(3)]),
+            Op::DynCall(vec![1, 2, 3]),
             Op::Drop(0),
             Op::Drop(0),
             Op::Drop(0),
             Op::Drop(0),
             Op::PushRet,
             Op::Resume(0),
-            Op::ReturnSlot(Slot::Return),
+            Op::PushRet,
+            Op::ReturnSlot(1), // TODO
         ],
     };
 

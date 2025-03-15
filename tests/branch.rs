@@ -33,15 +33,15 @@ fn should_branch() {
             Op::Gen(S, vec![]), 
             Op::Branch(4),         
             Op::Gen(P, vec![0]),
-            Op::ReturnSlot(Slot::Local(0)),
+            Op::ReturnSlot(0),
 
             Op::Gen(U, vec![]),
             Op::Branch(8),         
             Op::Gen(P, vec![1]),
-            Op::ReturnSlot(Slot::Local(0)),
+            Op::ReturnSlot(0),
 
             Op::Gen(P, vec![0]),
-            Op::ReturnSlot(Slot::Local(0)),
+            Op::ReturnSlot(0),
         ],
     };
 
@@ -88,7 +88,7 @@ fn should_loop() {
             Op::Drop(3),
             Op::Gen(SET, vec![]),
             Op::Branch(3), 
-            Op::ReturnSlot(Slot::Local(1)),
+            Op::ReturnSlot(1),
         ],
     };
 
@@ -111,7 +111,7 @@ fn should_not_branch_on_active_coroutine() {
         name: "co".into(),
         instrs: vec![
             Op::Gen(0, vec![0]),
-            Op::Yield(Slot::Local(0)),
+            Op::Yield(0),
             Op::Finish,
         ],
     };
@@ -124,7 +124,7 @@ fn should_not_branch_on_active_coroutine() {
             Op::Branch(4),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
-            Op::ReturnSlot(Slot::Local(0)),
+            Op::ReturnSlot(0),
         ],
     };
 
@@ -158,7 +158,7 @@ fn should_branch_on_finished_coroutine() {
             Op::Branch(4),
             Op::Gen(0, vec![0]),
             Op::Gen(0, vec![1]),
-            Op::ReturnSlot(Slot::Local(0)),
+            Op::ReturnSlot(0),
         ],
     };
 
@@ -181,7 +181,7 @@ fn should_branch_on_finished_coroutine_with_active_coroutine_present() {
         name: "co".into(),
         instrs: vec![
             Op::Gen(0, vec![0]),
-            Op::Yield(Slot::Local(0)),
+            Op::Yield(0),
             Op::Finish,
         ],
     };
@@ -196,7 +196,7 @@ fn should_branch_on_finished_coroutine_with_active_coroutine_present() {
             Op::Branch(6),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
-            Op::ReturnSlot(Slot::Local(0)),
+            Op::ReturnSlot(0),
         ],
     };
 
@@ -219,7 +219,7 @@ fn should_branch_on_finished_coroutine_in_function_where_parent_has_active_corou
         name: "co".into(),
         instrs: vec![
             Op::Gen(0, vec![0]),
-            Op::Yield(Slot::Local(0)),
+            Op::Yield(0),
             Op::Finish,
         ],
     };
@@ -233,7 +233,7 @@ fn should_branch_on_finished_coroutine_in_function_where_parent_has_active_corou
             Op::Branch(5),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
-            Op::ReturnSlot(Slot::Local(0)),
+            Op::ReturnSlot(0),
         ],
     };
 
@@ -242,7 +242,8 @@ fn should_branch_on_finished_coroutine_in_function_where_parent_has_active_corou
         instrs: vec![
             Op::Call(2, vec![]),
             Op::Call(1, vec![]),
-            Op::ReturnSlot(Slot::Return),
+            Op::PushRet,
+            Op::ReturnSlot(0),
         ],
     };
 
@@ -266,7 +267,7 @@ fn should_branch_on_finished_coroutine_in_dyn_function_where_parent_has_active_c
         name: "co".into(),
         instrs: vec![
             Op::Gen(0, vec![0]),
-            Op::Yield(Slot::Local(0)),
+            Op::Yield(0),
             Op::Finish,
         ],
     };
@@ -280,7 +281,7 @@ fn should_branch_on_finished_coroutine_in_dyn_function_where_parent_has_active_c
             Op::Branch(5),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
-            Op::ReturnSlot(Slot::Local(0)),
+            Op::ReturnSlot(0),
         ],
     };
 
@@ -292,7 +293,8 @@ fn should_branch_on_finished_coroutine_in_dyn_function_where_parent_has_active_c
             Op::Gen(1, vec![0]),
             Op::DynCall(vec![]),
             Op::Call(1, vec![]),
-            Op::ReturnSlot(Slot::Return),
+            Op::PushRet,
+            Op::ReturnSlot(1),
         ],
     };
 
@@ -315,7 +317,7 @@ fn should_branch_on_finished_coroutine_in_resumed_coroutine_where_parent_has_act
         name: "co".into(),
         instrs: vec![
             Op::Gen(0, vec![0]),
-            Op::Yield(Slot::Local(0)),
+            Op::Yield(0),
             Op::Finish,
         ],
     };
@@ -325,13 +327,13 @@ fn should_branch_on_finished_coroutine_in_resumed_coroutine_where_parent_has_act
         instrs: vec![
             Op::Call(2, vec![]),
             Op::Gen(0, vec![0]),
-            Op::Yield(Slot::Local(0)),
+            Op::Yield(0),
             Op::Resume(0),
             Op::FinishSetBranch(0),
             Op::Branch(7),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
-            Op::Yield(Slot::Local(1)),
+            Op::Yield(1),
             Op::Finish,
         ],
     };
@@ -342,7 +344,8 @@ fn should_branch_on_finished_coroutine_in_resumed_coroutine_where_parent_has_act
             Op::Call(2, vec![]),
             Op::Call(1, vec![]),
             Op::Resume(1),
-            Op::ReturnSlot(Slot::Return),
+            Op::PushRet,
+            Op::ReturnSlot(0),
         ],
     };
 
