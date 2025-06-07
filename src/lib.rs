@@ -14,6 +14,11 @@ pub struct Vm<T, S> {
     globals: Vec<S>,
 }
 
+struct Frame {
+    fun_id : usize,
+    ip : usize,
+}
+
 struct RetAddr {
     fun : usize,
     instr : usize,
