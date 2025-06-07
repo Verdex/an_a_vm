@@ -60,7 +60,6 @@ impl<T : Clone, S> Vm<T, S> {
             if current.ip >= self.funs[current.fun_id].instrs.len() {
                 // Note:  if the current function isn't pushed onto the return stack, then the
                 // stack trace will leave out the current function where the problem is occurring.
-                fun_stack.push(RetAddr { fun, instr: ip });
                 return Err(VmError::InstrPointerOutOfRange(ip, stack_trace(&current, &frames, &self.funs)));
             }
 
@@ -77,7 +76,6 @@ impl<T : Clone, S> Vm<T, S> {
                         Ok(()) => { },
                         Err(e) => { 
                             let name = self.ops[op_index].name.clone();
-                            fun_stack.push(RetAddr { fun, instr: ip });
                             return Err(VmError::GenOpError(name, e, stack_trace(&current, &frames, &self.funs))); 
                         }
                     }
@@ -85,7 +83,6 @@ impl<T : Clone, S> Vm<T, S> {
                 },
                 Op::Gen(op_index, _) => {
                     // Note:  Indicate current function for stack trace.
-                    fun_stack.push(RetAddr { fun, instr: ip });
                     return Err(VmError::GenOpDoesNotExist(op_index, stack_trace(&current, &frames, &self.funs)));
                 },
                 Op::Branch(target) if branch => {
@@ -103,7 +100,6 @@ impl<T : Clone, S> Vm<T, S> {
                         match get_local(*param, Cow::Borrowed(locals.last().unwrap())) {
                             Ok(v) => { new_locals.push(v); },
                             Err(f) => { 
-                                fun_stack.push(RetAddr{ fun, instr: ip });
                                 return Err(f(stack_trace(&current, &frames, &self.funs)));
                             },
                         }
@@ -120,7 +116,6 @@ impl<T : Clone, S> Vm<T, S> {
                         match get_local(*param, Cow::Borrowed(locals.last().unwrap())) {
                             Ok(v) => { new_locals.push(v); },
                             Err(f) => { 
-                                fun_stack.push(RetAddr{ fun, instr: ip });
                                 return Err(f(stack_trace(&current, &frames, &self.funs)));
                             },
                         }
@@ -129,7 +124,6 @@ impl<T : Clone, S> Vm<T, S> {
                     coroutines.push(vec![]);
                 },
                 Op::DynCall(_) => {
-                    fun_stack.push(RetAddr { fun, instr: ip });
                     return Err(VmError::DynFunDoesNotExist(stack_trace(&current, &frames, &self.funs)));
                 },
                 Op::ReturnLocal(slot) => {
@@ -139,7 +133,6 @@ impl<T : Clone, S> Vm<T, S> {
                     let ret_target = match get_local(slot, Cow::Owned(current_locals)) {
                         Ok(v) => v,
                         Err(f) => { 
-                            fun_stack.push(RetAddr{ fun, instr: ip });
                             return Err(f(stack_trace(&current, &frames, &self.funs)));
                         },
                     };
@@ -180,7 +173,6 @@ impl<T : Clone, S> Vm<T, S> {
                     let ret_target = match get_local(slot, Cow::Borrowed(&current_locals)) {
                         Ok(v) => v,
                         Err(f) => { 
-                            fun_stack.push(RetAddr{ fun, instr: ip });
                             return Err(f(stack_trace(&current, &frames, &self.funs)));
                         },
                     };
@@ -234,13 +226,11 @@ impl<T : Clone, S> Vm<T, S> {
                             coroutines.push(c_cs);
                         },
                         Coroutine::Finished => {
-                            fun_stack.push(RetAddr{ fun, instr: ip });
                             return Err(VmError::ResumeFinishedCoroutine(coroutine, stack_trace(&current, &frames, &self.funs)))
                         },
                     }
                 },
                 Op::Resume(coroutine) => {
-                    fun_stack.push(RetAddr{ fun, instr: ip });
                     return Err(VmError::AccessMissingCoroutine(coroutine, stack_trace(&current, &frames, &self.funs)));
                 },
                 Op::FinishSetBranch(coroutine) if coroutine < coroutines.last().unwrap().len() => {
@@ -254,7 +244,6 @@ impl<T : Clone, S> Vm<T, S> {
                     current.ip += 1;
                 },
                 Op::FinishSetBranch(coroutine) => { 
-                    fun_stack.push(RetAddr{ fun, instr: ip });
                     return Err(VmError::AccessMissingCoroutine(coroutine, stack_trace(&current, &frames, &self.funs)));
                 },
                 Op::Drop(local) if local < locals.last().unwrap().len() => {
@@ -262,7 +251,6 @@ impl<T : Clone, S> Vm<T, S> {
                     current.ip += 1;
                 },
                 Op::Drop(local) => {
-                    fun_stack.push(RetAddr{ fun, instr: ip });
                     return Err(VmError::AccessMissingLocal(local, stack_trace(&current, &frames, &self.funs)));
                 },
                 Op::Dup(local) if local < locals.last().unwrap().len() => {
@@ -271,7 +259,6 @@ impl<T : Clone, S> Vm<T, S> {
                     current.ip += 1;
                 },
                 Op::Dup(local) => {
-                    fun_stack.push(RetAddr{ fun, instr: ip });
                     return Err(VmError::AccessMissingLocal(local, stack_trace(&current, &frames, &self.funs)));
                 },
                 Op::Swap(a, b) if a < locals.last().unwrap().len() && b < locals.last().unwrap().len() => {
@@ -279,11 +266,9 @@ impl<T : Clone, S> Vm<T, S> {
                     current.ip += 1;
                 },
                 Op::Swap(a, b) if b < locals.last().unwrap().len() => {
-                    fun_stack.push(RetAddr{ fun, instr: ip });
                     return Err(VmError::AccessMissingLocal(a, stack_trace(&current, &frames, &self.funs)));
                 },
                 Op::Swap(_, b) => {
-                    fun_stack.push(RetAddr{ fun, instr: ip });
                     return Err(VmError::AccessMissingLocal(b, stack_trace(&current, &frames, &self.funs)));
                 },
                 Op::PushRet if ret.is_some() => {
@@ -292,7 +277,6 @@ impl<T : Clone, S> Vm<T, S> {
                     current.ip += 1;
                 },
                 Op::PushRet => {
-                    fun_stack.push(RetAddr{ fun, instr: ip });
                     return Err(VmError::AccessMissingReturn(stack_trace(&current, &frames, &self.funs)));
                 },
             }
