@@ -44,11 +44,10 @@ impl<T : Clone, S> Vm<T, S> {
     }
 
     pub fn run(&mut self, entry : usize) -> Result<Option<T>, VmError> {
-        // TODO : create frame stack, can probably get rid of fun_stack 
-        let mut fun_stack : Vec<RetAddr> = vec![];
+        let mut frames : Vec<Frame> = vec![];
+        let mut current = Frame { fun_id: entry, ip: 0 };
+
         let mut locals : Vec<Vec<T>> = vec![]; 
-        let mut ip : usize = 0;
-        let mut fun : usize = entry; 
         let mut ret : Option<T> = None;
         let mut branch : bool = false;
         let mut dyn_call : Option<usize> = None;
@@ -59,18 +58,18 @@ impl<T : Clone, S> Vm<T, S> {
         locals.push(vec![]);
         coroutines.push(vec![]);
         loop {
-            if fun >= self.funs.len() {
+            if current.fun_id >= self.funs.len() {
                 return Err(VmError::FunDoesNotExist(fun, stack_trace(fun_stack, &self.funs)));
             }
 
-            if ip >= self.funs[fun].instrs.len() {
+            if current.ip >= self.funs[current.fun_id].instrs.len() {
                 // Note:  if the current function isn't pushed onto the return stack, then the
                 // stack trace will leave out the current function where the problem is occurring.
                 fun_stack.push(RetAddr { fun, instr: ip });
                 return Err(VmError::InstrPointerOutOfRange(ip, stack_trace(fun_stack, &self.funs)));
             }
 
-            match self.funs[fun].instrs[ip] {
+            match self.funs[current.fun_id].instrs[current.ip] {
                 Op::Gen(op_index, ref params) if op_index < self.ops.len() => {
                     let env = OpEnv { 
                         locals: &mut locals, 
@@ -87,7 +86,7 @@ impl<T : Clone, S> Vm<T, S> {
                             return Err(VmError::GenOpError(name, e, stack_trace(fun_stack, &self.funs))); 
                         }
                     }
-                    ip += 1;
+                    current.ip += 1;
                 },
                 Op::Gen(op_index, _) => {
                     // Note:  Indicate current function for stack trace.
@@ -95,10 +94,10 @@ impl<T : Clone, S> Vm<T, S> {
                     return Err(VmError::GenOpDoesNotExist(op_index, stack_trace(fun_stack, &self.funs)));
                 },
                 Op::Branch(target) if branch => {
-                    ip = target;
+                    current.ip = target;
                 },
                 Op::Branch(_) => { 
-                    ip += 1;
+                    current.ip += 1;
                 },
                 Op::Call(fun_index, ref params) => {
                     fun_stack.push(RetAddr { fun, instr: ip + 1 });
@@ -257,7 +256,7 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                         Coroutine::Active { .. } => { branch = false; },
                     }
-                    ip += 1;
+                    current.ip += 1;
                 },
                 Op::FinishSetBranch(coroutine) => { 
                     fun_stack.push(RetAddr{ fun, instr: ip });
@@ -265,7 +264,7 @@ impl<T : Clone, S> Vm<T, S> {
                 },
                 Op::Drop(local) if local < locals.last().unwrap().len() => {
                     locals.last_mut().unwrap().remove(local);
-                    ip += 1;
+                    current.ip += 1;
                 },
                 Op::Drop(local) => {
                     fun_stack.push(RetAddr{ fun, instr: ip });
@@ -274,7 +273,7 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::Dup(local) if local < locals.last().unwrap().len() => {
                     let target = locals.last_mut().unwrap()[local].clone();
                     locals.last_mut().unwrap().push(target);
-                    ip += 1;
+                    current.ip += 1;
                 },
                 Op::Dup(local) => {
                     fun_stack.push(RetAddr{ fun, instr: ip });
@@ -282,7 +281,7 @@ impl<T : Clone, S> Vm<T, S> {
                 },
                 Op::Swap(a, b) if a < locals.last().unwrap().len() && b < locals.last().unwrap().len() => {
                     locals.last_mut().unwrap().swap(a, b);
-                    ip += 1;
+                    current.ip += 1;
                 },
                 Op::Swap(a, b) if b < locals.last().unwrap().len() => {
                     fun_stack.push(RetAddr{ fun, instr: ip });
@@ -295,7 +294,7 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::PushRet if ret.is_some() => {
                     locals.last_mut().unwrap().push(ret.unwrap());
                     ret = None;
-                    ip += 1;
+                    current.ip += 1;
                 },
                 Op::PushRet => {
                     fun_stack.push(RetAddr{ fun, instr: ip });
