@@ -54,13 +54,13 @@ impl<T : Clone, S> Vm<T, S> {
         coroutines.push(vec![]);
         loop {
             if current.fun_id >= self.funs.len() {
-                return Err(VmError::FunDoesNotExist(fun, stack_trace(&current, &frames, &self.funs)));
+                return Err(VmError::FunDoesNotExist(current.fun_id, stack_trace(&current, &frames, &self.funs)));
             }
 
             if current.ip >= self.funs[current.fun_id].instrs.len() {
                 // Note:  if the current function isn't pushed onto the return stack, then the
                 // stack trace will leave out the current function where the problem is occurring.
-                return Err(VmError::InstrPointerOutOfRange(ip, stack_trace(&current, &frames, &self.funs)));
+                return Err(VmError::InstrPointerOutOfRange(current.ip, stack_trace(&current, &frames, &self.funs)));
             }
 
             match self.funs[current.fun_id].instrs[current.ip] {
@@ -92,9 +92,9 @@ impl<T : Clone, S> Vm<T, S> {
                     current.ip += 1;
                 },
                 Op::Call(fun_index, ref params) => {
-                    fun_stack.push(RetAddr { fun, instr: ip + 1 });
-                    fun = fun_index;
-                    ip = 0;
+                    current.ip += 1;
+                    frames.push(current);
+                    current = Frame { fun_id: fun_index, ip: 0 };
                     let mut new_locals = vec![];
                     for param in params {
                         match get_local(*param, Cow::Borrowed(locals.last().unwrap())) {
@@ -108,9 +108,10 @@ impl<T : Clone, S> Vm<T, S> {
                     coroutines.push(vec![]);
                 },
                 Op::DynCall(ref params) if dyn_call.is_some() => {
-                    fun_stack.push(RetAddr { fun, instr: ip + 1 });
-                    fun = dyn_call.unwrap(); 
-                    ip = 0;
+                    current.ip += 1;
+                    frames.push(current);
+                    current = Frame { fun_id: dyn_call.unwrap(), ip: 0 };
+
                     let mut new_locals = vec![];
                     for param in params {
                         match get_local(*param, Cow::Borrowed(locals.last().unwrap())) {
@@ -137,29 +138,27 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                     };
 
-                    match fun_stack.pop() {
+                    match frames.pop() {
                         // Note:  if the stack is empty then all execution is finished
                         None => {
                             return Ok(Some(ret_target));
                         },
-                        Some(ret_addr) => {
-                            fun = ret_addr.fun;
-                            ip = ret_addr.instr;
+                        Some(frame) => {
+                            current = frame;
                             ret = Some(ret_target);
                         },
                     }
                 },
                 Op::Return => {
-                    match fun_stack.pop() {
+                    match frames.pop() {
                         // Note:  if the stack is empty then all execution is finished
                         None => {
                             return Ok(None);
                         },
-                        Some(ret_addr) => {
+                        Some(frame) => {
+                            current = frame;
                             coroutines.pop().unwrap();
                             locals.pop().unwrap();
-                            fun = ret_addr.fun;
-                            ip = ret_addr.instr;
                             ret = None;
                         },
                     }
@@ -167,8 +166,8 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::Yield(slot) => {
                     let current_coroutines = coroutines.pop().unwrap();
                     let current_locals = locals.pop().unwrap();
-                    let current_ip = ip + 1;
-                    let current_fun = fun;
+                    let current_ip = current.ip + 1;
+                    let current_fun = current.fun_id;
 
                     let ret_target = match get_local(slot, Cow::Borrowed(&current_locals)) {
                         Ok(v) => v,
@@ -186,30 +185,28 @@ impl<T : Clone, S> Vm<T, S> {
 
                     coroutines.last_mut().unwrap().push(this_coroutine);
 
-                    match fun_stack.pop() {
+                    match frames.pop() {
                         None => {
                             // Note: Top level yields are not supported.
-                            return Err(VmError::TopLevelYield(ip)); 
+                            return Err(VmError::TopLevelYield(current.ip)); 
                         },
-                        Some(ret_addr) => {
-                            fun = ret_addr.fun;
-                            ip = ret_addr.instr;
+                        Some(frame) => {
+                            current = frame;
                             ret = Some(ret_target);
                         },
                     }
                 },
                 Op::Finish => {
-                    match fun_stack.pop() {
+                    match frames.pop() {
                         None => {
                             // Note: Top level yields are not supported.
-                            return Err(VmError::TopLevelYield(ip)); 
+                            return Err(VmError::TopLevelYield(current.ip)); 
                         },
-                        Some(ret_addr) => {
+                        Some(frame) => {
+                            current = frame;
                             coroutines.pop().unwrap();
                             locals.pop().unwrap();
 
-                            fun = ret_addr.fun;
-                            ip = ret_addr.instr;
                             ret = None;
 
                             coroutines.last_mut().unwrap().push(Coroutine::Finished);
@@ -219,9 +216,10 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::Resume(coroutine) if coroutine < coroutines.last().unwrap().len() => {
                     match coroutines.last_mut().unwrap().remove(coroutine) { 
                         Coroutine::Active { locals: c_locals, ip: c_ip, fun: c_fun, coroutines: c_cs } => {
-                            fun_stack.push(RetAddr { fun, instr: ip + 1 });
-                            fun = c_fun;
-                            ip = c_ip;
+                            current.ip += 1;
+                            frames.push(current);
+                            current = Frame { fun_id: c_fun, ip: c_ip };
+
                             locals.push(c_locals);
                             coroutines.push(c_cs);
                         },
