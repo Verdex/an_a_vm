@@ -20,6 +20,7 @@ struct Frame<T> {
     ret : Option<T>,
     branch : bool,
     dyn_call : Option<usize>,
+    coroutines : Vec<Coroutine<T>>,
 }
 
 enum Coroutine<T> {
@@ -43,15 +44,12 @@ impl<T : Clone, S> Vm<T, S> {
 
     pub fn run(&mut self, entry : usize) -> Result<Option<T>, VmError> {
         let mut frames : Vec<Frame<T>> = vec![];
-        let mut current = Frame { fun_id: entry, ip: 0, ret: None, branch: false, dyn_call: None };
+        let mut current = Frame { fun_id: entry, ip: 0, ret: None, branch: false, dyn_call: None, coroutines: vec![] };
 
         let mut locals : Vec<Vec<T>> = vec![]; 
 
-        let mut coroutines : Vec<Vec<Coroutine<T>>> = vec![];
-
         // Note:  Initial locals for entry function
         locals.push(vec![]);
-        coroutines.push(vec![]);
         loop {
             if current.fun_id >= self.funs.len() {
                 return Err(VmError::FunDoesNotExist(current.fun_id, stack_trace(&current, &frames, &self.funs)));
@@ -94,7 +92,7 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::Call(fun_index, ref params) => {
                     current.ip += 1;
                     frames.push(current);
-                    current = Frame { fun_id: fun_index, ip: 0, ret: None, branch: false, dyn_call: None };
+                    current = Frame { fun_id: fun_index, ip: 0, ret: None, branch: false, dyn_call: None, coroutines: vec![] };
                     let mut new_locals = vec![];
                     for param in params {
                         match get_local(*param, Cow::Borrowed(locals.last().unwrap())) {
@@ -105,13 +103,12 @@ impl<T : Clone, S> Vm<T, S> {
                         }
                     }
                     locals.push(new_locals);
-                    coroutines.push(vec![]);
                 },
                 Op::DynCall(ref params) if current.dyn_call.is_some() => {
                     let target_fun_id = current.dyn_call.unwrap();
                     current.ip += 1;
                     frames.push(current);
-                    current = Frame { fun_id: target_fun_id, ip: 0, ret: None, branch: false, dyn_call: None };
+                    current = Frame { fun_id: target_fun_id, ip: 0, ret: None, branch: false, dyn_call: None, coroutines: vec![] };
 
                     let mut new_locals = vec![];
                     for param in params {
@@ -123,13 +120,11 @@ impl<T : Clone, S> Vm<T, S> {
                         }
                     }
                     locals.push(new_locals);
-                    coroutines.push(vec![]);
                 },
                 Op::DynCall(_) => {
                     return Err(VmError::DynFunDoesNotExist(stack_trace(&current, &frames, &self.funs)));
                 },
                 Op::ReturnLocal(slot) => {
-                    coroutines.pop().unwrap();
                     let current_locals = locals.pop().unwrap();
 
                     let ret_target = match get_local(slot, Cow::Owned(current_locals)) {
@@ -158,14 +153,12 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                         Some(frame) => {
                             current = frame;
-                            coroutines.pop().unwrap();
                             locals.pop().unwrap();
                             current.ret = None;
                         },
                     }
                 },
                 Op::Yield(slot) => {
-                    let current_coroutines = coroutines.pop().unwrap();
                     let current_locals = locals.pop().unwrap();
                     let current_ip = current.ip + 1;
                     let current_fun = current.fun_id;
@@ -178,13 +171,11 @@ impl<T : Clone, S> Vm<T, S> {
                     };
 
                     let this_coroutine = Coroutine::Active {
-                        coroutines: current_coroutines,
+                        coroutines: current.coroutines,
                         locals: current_locals,
                         ip: current_ip,
                         fun: current_fun,
                     };
-
-                    coroutines.last_mut().unwrap().push(this_coroutine);
 
                     match frames.pop() {
                         None => {
@@ -193,6 +184,7 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                         Some(frame) => {
                             current = frame;
+                            current.coroutines.push(this_coroutine);
                             current.ret = Some(ret_target);
                         },
                     }
@@ -205,24 +197,22 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                         Some(frame) => {
                             current = frame;
-                            coroutines.pop().unwrap();
                             locals.pop().unwrap();
 
+                            current.coroutines.push(Coroutine::Finished);
                             current.ret = None;
-
-                            coroutines.last_mut().unwrap().push(Coroutine::Finished);
                         },
                     }
                 },
-                Op::Resume(coroutine) if coroutine < coroutines.last().unwrap().len() => {
-                    match coroutines.last_mut().unwrap().remove(coroutine) { 
+                Op::Resume(coroutine) if coroutine < current.coroutines.len() => {
+                    match current.coroutines.remove(coroutine) { 
                         Coroutine::Active { locals: c_locals, ip: c_ip, fun: c_fun, coroutines: c_cs } => {
                             current.ip += 1;
                             frames.push(current);
-                            current = Frame { fun_id: c_fun, ip: c_ip, ret: None, branch: false, dyn_call: None };
+                            // TODO ret/branch/dyn_call should be able to be preserved between yield/resume
+                            current = Frame { fun_id: c_fun, ip: c_ip, ret: None, branch: false, dyn_call: None, coroutines: c_cs };
 
                             locals.push(c_locals);
-                            coroutines.push(c_cs);
                         },
                         Coroutine::Finished => {
                             return Err(VmError::ResumeFinishedCoroutine(coroutine, stack_trace(&current, &frames, &self.funs)))
@@ -232,11 +222,11 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::Resume(coroutine) => {
                     return Err(VmError::AccessMissingCoroutine(coroutine, stack_trace(&current, &frames, &self.funs)));
                 },
-                Op::FinishSetBranch(coroutine) if coroutine < coroutines.last().unwrap().len() => {
-                    match coroutines.last().unwrap()[coroutine] {
+                Op::FinishSetBranch(coroutine) if coroutine < current.coroutines.len() => {
+                    match current.coroutines[coroutine] {
                         Coroutine::Finished => { 
                             current.branch = true; 
-                            coroutines.last_mut().unwrap().remove(coroutine);
+                            current.coroutines.remove(coroutine);
                         },
                         Coroutine::Active { .. } => { current.branch = false; },
                     }
