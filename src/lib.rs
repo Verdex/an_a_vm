@@ -14,9 +14,10 @@ pub struct Vm<T, S> {
     globals: Vec<S>,
 }
 
-struct Frame {
+struct Frame<T> {
     fun_id : usize,
     ip : usize,
+    ret : Option<T>,
 }
 
 enum Coroutine<T> {
@@ -39,11 +40,10 @@ impl<T : Clone, S> Vm<T, S> {
     }
 
     pub fn run(&mut self, entry : usize) -> Result<Option<T>, VmError> {
-        let mut frames : Vec<Frame> = vec![];
-        let mut current = Frame { fun_id: entry, ip: 0 };
+        let mut frames : Vec<Frame<T>> = vec![];
+        let mut current = Frame { fun_id: entry, ip: 0, ret: None };
 
         let mut locals : Vec<Vec<T>> = vec![]; 
-        let mut ret : Option<T> = None;
         let mut branch : bool = false;
         let mut dyn_call : Option<usize> = None;
 
@@ -68,7 +68,7 @@ impl<T : Clone, S> Vm<T, S> {
                     let env = OpEnv { 
                         locals: &mut locals, 
                         globals: &mut self.globals,
-                        ret: &mut ret, 
+                        ret: &mut current.ret, 
                         branch: &mut branch, 
                         dyn_call: &mut dyn_call,
                     };
@@ -94,7 +94,7 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::Call(fun_index, ref params) => {
                     current.ip += 1;
                     frames.push(current);
-                    current = Frame { fun_id: fun_index, ip: 0 };
+                    current = Frame { fun_id: fun_index, ip: 0, ret: None };
                     let mut new_locals = vec![];
                     for param in params {
                         match get_local(*param, Cow::Borrowed(locals.last().unwrap())) {
@@ -110,7 +110,7 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::DynCall(ref params) if dyn_call.is_some() => {
                     current.ip += 1;
                     frames.push(current);
-                    current = Frame { fun_id: dyn_call.unwrap(), ip: 0 };
+                    current = Frame { fun_id: dyn_call.unwrap(), ip: 0, ret: None };
 
                     let mut new_locals = vec![];
                     for param in params {
@@ -145,7 +145,7 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                         Some(frame) => {
                             current = frame;
-                            ret = Some(ret_target);
+                            current.ret = Some(ret_target);
                         },
                     }
                 },
@@ -159,7 +159,7 @@ impl<T : Clone, S> Vm<T, S> {
                             current = frame;
                             coroutines.pop().unwrap();
                             locals.pop().unwrap();
-                            ret = None;
+                            current.ret = None;
                         },
                     }
                 },
@@ -192,7 +192,7 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                         Some(frame) => {
                             current = frame;
-                            ret = Some(ret_target);
+                            current.ret = Some(ret_target);
                         },
                     }
                 },
@@ -207,7 +207,7 @@ impl<T : Clone, S> Vm<T, S> {
                             coroutines.pop().unwrap();
                             locals.pop().unwrap();
 
-                            ret = None;
+                            current.ret = None;
 
                             coroutines.last_mut().unwrap().push(Coroutine::Finished);
                         },
@@ -218,7 +218,7 @@ impl<T : Clone, S> Vm<T, S> {
                         Coroutine::Active { locals: c_locals, ip: c_ip, fun: c_fun, coroutines: c_cs } => {
                             current.ip += 1;
                             frames.push(current);
-                            current = Frame { fun_id: c_fun, ip: c_ip };
+                            current = Frame { fun_id: c_fun, ip: c_ip, ret: None };
 
                             locals.push(c_locals);
                             coroutines.push(c_cs);
@@ -269,9 +269,9 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::Swap(_, b) => {
                     return Err(VmError::AccessMissingLocal(b, stack_trace(&current, &frames, &self.funs)));
                 },
-                Op::PushRet if ret.is_some() => {
-                    locals.last_mut().unwrap().push(ret.unwrap());
-                    ret = None;
+                Op::PushRet if current.ret.is_some() => {
+                    locals.last_mut().unwrap().push(current.ret.unwrap());
+                    current.ret = None;
                     current.ip += 1;
                 },
                 Op::PushRet => {
@@ -294,7 +294,7 @@ fn get_local<T : Clone>(index: usize, locals : Cow<Vec<T>>) -> Result<T, Box<dyn
     }
 }
 
-fn stack_trace(current : &Frame, stack : &[Frame], fun_map : &[Fun]) -> StackTrace {
+fn stack_trace<T>(current : &Frame<T>, stack : &[Frame<T>], fun_map : &[Fun]) -> StackTrace {
 
     struct RetAddr { fun : usize, instr : usize }
 
