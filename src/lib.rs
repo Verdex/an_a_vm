@@ -18,6 +18,7 @@ struct Frame<T> {
     fun_id : usize,
     ip : usize,
     ret : Option<T>,
+    branch : bool,
 }
 
 enum Coroutine<T> {
@@ -41,10 +42,9 @@ impl<T : Clone, S> Vm<T, S> {
 
     pub fn run(&mut self, entry : usize) -> Result<Option<T>, VmError> {
         let mut frames : Vec<Frame<T>> = vec![];
-        let mut current = Frame { fun_id: entry, ip: 0, ret: None };
+        let mut current = Frame { fun_id: entry, ip: 0, ret: None, branch: false };
 
         let mut locals : Vec<Vec<T>> = vec![]; 
-        let mut branch : bool = false;
         let mut dyn_call : Option<usize> = None;
 
         let mut coroutines : Vec<Vec<Coroutine<T>>> = vec![];
@@ -69,7 +69,7 @@ impl<T : Clone, S> Vm<T, S> {
                         locals: &mut locals, 
                         globals: &mut self.globals,
                         ret: &mut current.ret, 
-                        branch: &mut branch, 
+                        branch: &mut current.branch, 
                         dyn_call: &mut dyn_call,
                     };
                     match (self.ops[op_index].op)(env, params) {
@@ -85,7 +85,7 @@ impl<T : Clone, S> Vm<T, S> {
                     // Note:  Indicate current function for stack trace.
                     return Err(VmError::GenOpDoesNotExist(op_index, stack_trace(&current, &frames, &self.funs)));
                 },
-                Op::Branch(target) if branch => {
+                Op::Branch(target) if current.branch => {
                     current.ip = target;
                 },
                 Op::Branch(_) => { 
@@ -94,7 +94,7 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::Call(fun_index, ref params) => {
                     current.ip += 1;
                     frames.push(current);
-                    current = Frame { fun_id: fun_index, ip: 0, ret: None };
+                    current = Frame { fun_id: fun_index, ip: 0, ret: None, branch: false };
                     let mut new_locals = vec![];
                     for param in params {
                         match get_local(*param, Cow::Borrowed(locals.last().unwrap())) {
@@ -110,7 +110,7 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::DynCall(ref params) if dyn_call.is_some() => {
                     current.ip += 1;
                     frames.push(current);
-                    current = Frame { fun_id: dyn_call.unwrap(), ip: 0, ret: None };
+                    current = Frame { fun_id: dyn_call.unwrap(), ip: 0, ret: None, branch: false };
 
                     let mut new_locals = vec![];
                     for param in params {
@@ -218,7 +218,7 @@ impl<T : Clone, S> Vm<T, S> {
                         Coroutine::Active { locals: c_locals, ip: c_ip, fun: c_fun, coroutines: c_cs } => {
                             current.ip += 1;
                             frames.push(current);
-                            current = Frame { fun_id: c_fun, ip: c_ip, ret: None };
+                            current = Frame { fun_id: c_fun, ip: c_ip, ret: None, branch: false };
 
                             locals.push(c_locals);
                             coroutines.push(c_cs);
@@ -234,10 +234,10 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::FinishSetBranch(coroutine) if coroutine < coroutines.last().unwrap().len() => {
                     match coroutines.last().unwrap()[coroutine] {
                         Coroutine::Finished => { 
-                            branch = true; 
+                            current.branch = true; 
                             coroutines.last_mut().unwrap().remove(coroutine);
                         },
-                        Coroutine::Active { .. } => { branch = false; },
+                        Coroutine::Active { .. } => { current.branch = false; },
                     }
                     current.ip += 1;
                 },
