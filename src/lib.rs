@@ -20,6 +20,7 @@ struct Frame<T> {
     ret : Option<T>,
     branch : bool,
     dyn_call : Option<usize>,
+    locals : Vec<T>,
     coroutines : Vec<Coroutine<T>>,
 }
 
@@ -44,12 +45,8 @@ impl<T : Clone, S> Vm<T, S> {
 
     pub fn run(&mut self, entry : usize) -> Result<Option<T>, VmError> {
         let mut frames : Vec<Frame<T>> = vec![];
-        let mut current = Frame { fun_id: entry, ip: 0, ret: None, branch: false, dyn_call: None, coroutines: vec![] };
+        let mut current = Frame { fun_id: entry, ip: 0, ret: None, branch: false, dyn_call: None, locals: vec![], coroutines: vec![] };
 
-        let mut locals : Vec<Vec<T>> = vec![]; 
-
-        // Note:  Initial locals for entry function
-        locals.push(vec![]);
         loop {
             if current.fun_id >= self.funs.len() {
                 return Err(VmError::FunDoesNotExist(current.fun_id, stack_trace(&current, &frames, &self.funs)));
@@ -64,7 +61,7 @@ impl<T : Clone, S> Vm<T, S> {
             match self.funs[current.fun_id].instrs[current.ip] {
                 Op::Gen(op_index, ref params) if op_index < self.ops.len() => {
                     let env = OpEnv { 
-                        locals: &mut locals, 
+                        locals: &mut current.locals, 
                         globals: &mut self.globals,
                         ret: &mut current.ret, 
                         branch: &mut current.branch, 
@@ -90,42 +87,39 @@ impl<T : Clone, S> Vm<T, S> {
                     current.ip += 1;
                 },
                 Op::Call(fun_index, ref params) => {
-                    current.ip += 1;
-                    frames.push(current);
-                    current = Frame { fun_id: fun_index, ip: 0, ret: None, branch: false, dyn_call: None, coroutines: vec![] };
                     let mut new_locals = vec![];
                     for param in params {
-                        match get_local(*param, Cow::Borrowed(locals.last().unwrap())) {
+                        match get_local(*param, Cow::Borrowed(&current.locals)) {
                             Ok(v) => { new_locals.push(v); },
                             Err(f) => { 
                                 return Err(f(stack_trace(&current, &frames, &self.funs)));
                             },
                         }
                     }
-                    locals.push(new_locals);
+                    current.ip += 1;
+                    frames.push(current);
+                    current = Frame { fun_id: fun_index, ip: 0, ret: None, branch: false, dyn_call: None, locals: new_locals, coroutines: vec![] };
                 },
                 Op::DynCall(ref params) if current.dyn_call.is_some() => {
+                    let mut new_locals = vec![];
+                    for param in params {
+                        match get_local(*param, Cow::Borrowed(&current.locals)) {
+                            Ok(v) => { new_locals.push(v); },
+                            Err(f) => { 
+                                return Err(f(stack_trace(&current, &frames, &self.funs)));
+                            },
+                        }
+                    }
                     let target_fun_id = current.dyn_call.unwrap();
                     current.ip += 1;
                     frames.push(current);
-                    current = Frame { fun_id: target_fun_id, ip: 0, ret: None, branch: false, dyn_call: None, coroutines: vec![] };
-
-                    let mut new_locals = vec![];
-                    for param in params {
-                        match get_local(*param, Cow::Borrowed(locals.last().unwrap())) {
-                            Ok(v) => { new_locals.push(v); },
-                            Err(f) => { 
-                                return Err(f(stack_trace(&current, &frames, &self.funs)));
-                            },
-                        }
-                    }
-                    locals.push(new_locals);
+                    current = Frame { fun_id: target_fun_id, ip: 0, ret: None, branch: false, dyn_call: None, locals: new_locals, coroutines: vec![] };
                 },
                 Op::DynCall(_) => {
                     return Err(VmError::DynFunDoesNotExist(stack_trace(&current, &frames, &self.funs)));
                 },
                 Op::ReturnLocal(slot) => {
-                    let current_locals = locals.pop().unwrap();
+                    let current_locals = std::mem::take(&mut current.locals);
 
                     let ret_target = match get_local(slot, Cow::Owned(current_locals)) {
                         Ok(v) => v,
@@ -153,13 +147,12 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                         Some(frame) => {
                             current = frame;
-                            locals.pop().unwrap();
                             current.ret = None;
                         },
                     }
                 },
                 Op::Yield(slot) => {
-                    let current_locals = locals.pop().unwrap();
+                    let current_locals = std::mem::take(&mut current.locals);
                     let current_ip = current.ip + 1;
                     let current_fun = current.fun_id;
 
@@ -197,7 +190,6 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                         Some(frame) => {
                             current = frame;
-                            locals.pop().unwrap();
 
                             current.coroutines.push(Coroutine::Finished);
                             current.ret = None;
@@ -210,9 +202,7 @@ impl<T : Clone, S> Vm<T, S> {
                             current.ip += 1;
                             frames.push(current);
                             // TODO ret/branch/dyn_call should be able to be preserved between yield/resume
-                            current = Frame { fun_id: c_fun, ip: c_ip, ret: None, branch: false, dyn_call: None, coroutines: c_cs };
-
-                            locals.push(c_locals);
+                            current = Frame { fun_id: c_fun, ip: c_ip, ret: None, branch: false, dyn_call: None, locals: c_locals, coroutines: c_cs };
                         },
                         Coroutine::Finished => {
                             return Err(VmError::ResumeFinishedCoroutine(coroutine, stack_trace(&current, &frames, &self.funs)))
@@ -235,33 +225,33 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::FinishSetBranch(coroutine) => { 
                     return Err(VmError::AccessMissingCoroutine(coroutine, stack_trace(&current, &frames, &self.funs)));
                 },
-                Op::Drop(local) if local < locals.last().unwrap().len() => {
-                    locals.last_mut().unwrap().remove(local);
+                Op::Drop(local) if local < current.locals.len() => {
+                    current.locals.remove(local);
                     current.ip += 1;
                 },
                 Op::Drop(local) => {
                     return Err(VmError::AccessMissingLocal(local, stack_trace(&current, &frames, &self.funs)));
                 },
-                Op::Dup(local) if local < locals.last().unwrap().len() => {
-                    let target = locals.last_mut().unwrap()[local].clone();
-                    locals.last_mut().unwrap().push(target);
+                Op::Dup(local) if local < current.locals.len() => {
+                    let target = current.locals[local].clone();
+                    current.locals.push(target);
                     current.ip += 1;
                 },
                 Op::Dup(local) => {
                     return Err(VmError::AccessMissingLocal(local, stack_trace(&current, &frames, &self.funs)));
                 },
-                Op::Swap(a, b) if a < locals.last().unwrap().len() && b < locals.last().unwrap().len() => {
-                    locals.last_mut().unwrap().swap(a, b);
+                Op::Swap(a, b) if a < current.locals.len() && b < current.locals.len() => {
+                    current.locals.swap(a, b);
                     current.ip += 1;
                 },
-                Op::Swap(a, b) if b < locals.last().unwrap().len() => {
+                Op::Swap(a, b) if b < current.locals.len() => {
                     return Err(VmError::AccessMissingLocal(a, stack_trace(&current, &frames, &self.funs)));
                 },
                 Op::Swap(_, b) => {
                     return Err(VmError::AccessMissingLocal(b, stack_trace(&current, &frames, &self.funs)));
                 },
                 Op::PushRet if current.ret.is_some() => {
-                    locals.last_mut().unwrap().push(current.ret.unwrap());
+                    current.locals.push(current.ret.unwrap());
                     current.ret = None;
                     current.ip += 1;
                 },
