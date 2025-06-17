@@ -20,7 +20,7 @@ pub fn gen_set_branch_on_zero<S>() -> GenOp<u8, S> {
         name: "bz".into(),
         op: |env, params| { 
             if let [s] = &params[..] {
-                let v = env.locals.last().unwrap()[*s];
+                let v = env.locals[*s];
                 *env.branch = v == 0;
             }
             Ok(()) 
@@ -34,7 +34,7 @@ pub fn gen_push_global<T : Copy>() -> GenOp<T, T> {
         op: |env, params| { 
             if let [s] = &params[..] {
                 let v = env.globals[*s];
-                env.locals.last_mut().unwrap().push(v);
+                env.locals.push(v);
             }
             Ok(())
         },
@@ -46,7 +46,7 @@ pub fn gen_push_into_global<T : Copy>() -> GenOp<T, T> {
         name: "push into global".into(),
         op: |env, params| { 
             if let [s] = &params[..] {
-                let v = env.locals.last().unwrap()[*s];
+                let v = env.locals[*s];
                 env.globals.push(v);
             }
             Ok(())
@@ -59,7 +59,7 @@ pub fn gen_inc<S>() -> GenOp<u8, S> {
         name: "inc".into(),
         op: | env, params |  { 
             if let [s] = &params[..] {
-                let a = &env.locals.last().unwrap()[*s];
+                let a = &env.locals[*s];
                 *env.ret = Some(a + 1);
             }
             Ok(())
@@ -72,7 +72,7 @@ pub fn gen_dec<S>() -> GenOp<u8, S> {
         name: "dec".into(),
         op: | env, params |  { 
             if let [s] = &params[..] {
-                let a = &env.locals.last().unwrap()[*s];
+                let a = &env.locals[*s];
                 *env.ret = Some(a - 1);
             }
             Ok(())
@@ -85,8 +85,8 @@ pub fn gen_mul<T : std::ops::Mul<Output = T> + Copy, S>() -> GenOp<T, S> {
         name: "mul".into(),
         op: | env, params |  { 
             if let [s1, s2] = &params[..] {
-                let a = &env.locals.last().unwrap()[*s1];
-                let b = &env.locals.last().unwrap()[*s2];
+                let a = &env.locals[*s1];
+                let b = &env.locals[*s2];
                 *env.ret = Some(*a * *b);
             }
             Ok(())
@@ -99,8 +99,8 @@ pub fn gen_add<T : std::ops::Add<Output = T> + Copy, S>() -> GenOp<T, S> {
         name: "add".into(),
         op: | env, params |  { 
             if let [s1, s2] = &params[..] {
-                let a = &env.locals.last().unwrap()[*s1];
-                let b = &env.locals.last().unwrap()[*s2];
+                let a = &env.locals[*s1];
+                let b = &env.locals[*s2];
                 *env.ret = Some(*a + *b);
             }
             Ok(())
@@ -113,8 +113,8 @@ pub fn gen_unset_branch_on_equal<T : PartialEq, S>() -> GenOp<T, S> {
         name: "set branch on equal".into(),
         op: | env, params |  { 
             if let [s1, s2] = &params[..] {
-                let a = &env.locals.last().unwrap()[*s1];
-                let b = &env.locals.last().unwrap()[*s2];
+                let a = &env.locals[*s1];
+                let b = &env.locals[*s2];
                 *env.branch = *a != *b;
             }
             Ok(())
@@ -127,8 +127,8 @@ pub fn gen_set_branch_on_equal<T : PartialEq, S>() -> GenOp<T, S> {
         name: "set branch on equal".into(),
         op: | env, params |  { 
             if let [s1, s2] = &params[..] {
-                let a = &env.locals.last().unwrap()[*s1];
-                let b = &env.locals.last().unwrap()[*s2];
+                let a = &env.locals[*s1];
+                let b = &env.locals[*s2];
                 *env.branch = *a == *b;
             }
             Ok(())
@@ -141,7 +141,7 @@ pub fn gen_set_dyn_call<S>() -> GenOp<usize, S> {
         name: "set dyn call".into(),
         op: |env, params| {
             if let [s] = &params[..] {
-                let v = &env.locals.last().unwrap()[*s];
+                let v = &env.locals[*s];
                 *env.dyn_call = Some(*v);
             }
             Ok(())

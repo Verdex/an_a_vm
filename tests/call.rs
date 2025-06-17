@@ -295,7 +295,7 @@ fn should_call_and_return() {
     let push : GenOp<u8, u8> = GenOp {
         name : "push".into(),
         op: |env, _ | { 
-            env.locals.last_mut().unwrap().push(9);
+            env.locals.push(9);
             Ok(())
         },
     };
