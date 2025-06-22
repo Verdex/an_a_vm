@@ -121,7 +121,7 @@ impl<T : Clone, S> Vm<T, S> {
                     return Err(VmError::DynFunDoesNotExist(stack_trace(&self.current, &self.frames, &self.funs)));
                 },
                 Op::ReturnLocal(slot) => {
-                    let current_locals = std::mem::take(&mut self.current.locals);
+                    let current_locals = std::mem::replace(&mut self.current.locals, vec![]);
 
                     let ret_target = match get_local(slot, Cow::Owned(current_locals)) {
                         Ok(v) => v,
@@ -154,9 +154,10 @@ impl<T : Clone, S> Vm<T, S> {
                     }
                 },
                 Op::Yield(slot) => {
-                    let current_locals = std::mem::take(&mut self.current.locals);
+                    let current_locals = std::mem::replace(&mut self.current.locals, vec![]);
                     let current_ip = self.current.ip + 1;
                     let current_fun = self.current.fun_id;
+                    let current_coroutines = std::mem::replace(&mut self.current.coroutines, vec![]);
 
                     let ret_target = match get_local(slot, Cow::Borrowed(&current_locals)) {
                         Ok(v) => v,
@@ -166,7 +167,7 @@ impl<T : Clone, S> Vm<T, S> {
                     };
 
                     let this_coroutine = Coroutine::Active {
-                        coroutines: self.current.coroutines,
+                        coroutines: current_coroutines,
                         locals: current_locals,
                         ip: current_ip,
                         fun: current_fun,
@@ -202,9 +203,10 @@ impl<T : Clone, S> Vm<T, S> {
                     match self.current.coroutines.remove(coroutine) { 
                         Coroutine::Active { locals: c_locals, ip: c_ip, fun: c_fun, coroutines: c_cs } => {
                             self.current.ip += 1;
-                            self.frames.push(self.current);
                             // TODO ret/branch/dyn_call should be able to be preserved between yield/resume
-                            self.current = Frame { fun_id: c_fun, ip: c_ip, ret: None, branch: false, dyn_call: None, locals: c_locals, coroutines: c_cs };
+                            let new_current = Frame { fun_id: c_fun, ip: c_ip, ret: None, branch: false, dyn_call: None, locals: c_locals, coroutines: c_cs };
+                            let old_current = std::mem::replace(&mut self.current, new_current);
+                            self.frames.push(old_current);
                         },
                         Coroutine::Finished => {
                             return Err(VmError::ResumeFinishedCoroutine(coroutine, stack_trace(&self.current, &self.frames, &self.funs)))
@@ -253,7 +255,8 @@ impl<T : Clone, S> Vm<T, S> {
                     return Err(VmError::AccessMissingLocal(b, stack_trace(&self.current, &self.frames, &self.funs)));
                 },
                 Op::PushRet if self.current.ret.is_some() => {
-                    self.current.locals.push(self.current.ret.unwrap());
+                    let ret = std::mem::replace(&mut self.current.ret, None);
+                    self.current.locals.push(ret.unwrap());
                     self.current.ret = None;
                     self.current.ip += 1;
                 },
