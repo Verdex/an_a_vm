@@ -22,7 +22,7 @@ pub struct Fun {
 }
 
 pub struct OpEnv<'a, T, S> {
-    pub locals : &'a mut Vec<Vec<T>>,
+    pub locals : &'a mut Vec<T>,
     pub globals : &'a mut Vec<S>,
     pub ret : &'a mut Option<T>,
     pub branch : &'a mut bool,

@@ -18,10 +18,10 @@ fn should_branch() {
         name : "push".into(),
         op: |env, ps | { 
             if ps[0] == 0 {
-                env.locals.last_mut().unwrap().push(0);
+                env.locals.push(0);
             }
             if ps[0] == 1 {
-                env.locals.last_mut().unwrap().push(1);
+                env.locals.push(1);
             }
             Ok(())
         },
