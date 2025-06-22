@@ -46,13 +46,13 @@ impl<T : Clone, S> Vm<T, S> {
 
         loop {
             if self.current.fun_id >= self.funs.len() {
-                return Err(VmError::FunDoesNotExist(self.current.fun_id, stack_trace(&self.current, &self.frames, &self.funs)));
+                return Err(VmError::FunDoesNotExist(self.current.fun_id, self.stack_trace()));
             }
 
             if self.current.ip >= self.funs[self.current.fun_id].instrs.len() {
                 // Note:  if the current function isn't pushed onto the return stack, then the
                 // stack trace will leave out the current function where the problem is occurring.
-                return Err(VmError::InstrPointerOutOfRange(self.current.ip, stack_trace(&self.current, &self.frames, &self.funs)));
+                return Err(VmError::InstrPointerOutOfRange(self.current.ip, self.stack_trace()));
             }
 
             match self.funs[self.current.fun_id].instrs[self.current.ip] {
@@ -68,14 +68,14 @@ impl<T : Clone, S> Vm<T, S> {
                         Ok(()) => { },
                         Err(e) => { 
                             let name = self.ops[op_index].name.clone();
-                            return Err(VmError::GenOpError(name, e, stack_trace(&self.current, &self.frames, &self.funs))); 
+                            return Err(VmError::GenOpError(name, e, self.stack_trace())); 
                         }
                     }
                     self.current.ip += 1;
                 },
                 Op::Gen(op_index, _) => {
                     // Note:  Indicate current function for stack trace.
-                    return Err(VmError::GenOpDoesNotExist(op_index, stack_trace(&self.current, &self.frames, &self.funs)));
+                    return Err(VmError::GenOpDoesNotExist(op_index, self.stack_trace()));
                 },
                 Op::Branch(target) if self.current.branch => {
                     self.current.ip = target;
@@ -89,7 +89,7 @@ impl<T : Clone, S> Vm<T, S> {
                         match get_local(*param, Cow::Borrowed(&self.current.locals)) {
                             Ok(v) => { new_locals.push(v); },
                             Err(f) => { 
-                                return Err(f(stack_trace(&self.current, &self.frames, &self.funs)));
+                                return Err(f(self.stack_trace()));
                             },
                         }
                     }
@@ -103,7 +103,7 @@ impl<T : Clone, S> Vm<T, S> {
                         match get_local(*param, Cow::Borrowed(&self.current.locals)) {
                             Ok(v) => { new_locals.push(v); },
                             Err(f) => { 
-                                return Err(f(stack_trace(&self.current, &self.frames, &self.funs)));
+                                return Err(f(self.stack_trace()));
                             },
                         }
                     }
@@ -113,7 +113,7 @@ impl<T : Clone, S> Vm<T, S> {
                     self.frames.push(current);
                 },
                 Op::DynCall(_) => {
-                    return Err(VmError::DynFunDoesNotExist(stack_trace(&self.current, &self.frames, &self.funs)));
+                    return Err(VmError::DynFunDoesNotExist(self.stack_trace()));
                 },
                 Op::ReturnLocal(slot) => {
                     let current_locals = std::mem::replace(&mut self.current.locals, vec![]);
@@ -121,7 +121,7 @@ impl<T : Clone, S> Vm<T, S> {
                     let ret_target = match get_local(slot, Cow::Owned(current_locals)) {
                         Ok(v) => v,
                         Err(f) => { 
-                            return Err(f(stack_trace(&self.current, &self.frames, &self.funs)));
+                            return Err(f(self.stack_trace()));
                         },
                     };
 
@@ -153,7 +153,7 @@ impl<T : Clone, S> Vm<T, S> {
                     let ret_target = match get_local(slot, Cow::Borrowed(&self.current.locals)) {
                         Ok(v) => v,
                         Err(f) => { 
-                            return Err(f(stack_trace(&self.current, &self.frames, &self.funs)));
+                            return Err(f(self.stack_trace()));
                         },
                     };
 
@@ -192,12 +192,12 @@ impl<T : Clone, S> Vm<T, S> {
                             self.frames.push(old_current);
                         },
                         Coroutine::Finished => {
-                            return Err(VmError::ResumeFinishedCoroutine(coroutine, stack_trace(&self.current, &self.frames, &self.funs)))
+                            return Err(VmError::ResumeFinishedCoroutine(coroutine, self.stack_trace()))
                         },
                     }
                 },
                 Op::Resume(coroutine) => {
-                    return Err(VmError::AccessMissingCoroutine(coroutine, stack_trace(&self.current, &self.frames, &self.funs)));
+                    return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
                 },
                 Op::FinishSetBranch(coroutine) if coroutine < self.current.coroutines.len() => {
                     match self.current.coroutines[coroutine] {
@@ -210,14 +210,14 @@ impl<T : Clone, S> Vm<T, S> {
                     self.current.ip += 1;
                 },
                 Op::FinishSetBranch(coroutine) => { 
-                    return Err(VmError::AccessMissingCoroutine(coroutine, stack_trace(&self.current, &self.frames, &self.funs)));
+                    return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
                 },
                 Op::Drop(local) if local < self.current.locals.len() => {
                     self.current.locals.remove(local);
                     self.current.ip += 1;
                 },
                 Op::Drop(local) => {
-                    return Err(VmError::AccessMissingLocal(local, stack_trace(&self.current, &self.frames, &self.funs)));
+                    return Err(VmError::AccessMissingLocal(local, self.stack_trace()));
                 },
                 Op::Dup(local) if local < self.current.locals.len() => {
                     let target = self.current.locals[local].clone();
@@ -225,17 +225,17 @@ impl<T : Clone, S> Vm<T, S> {
                     self.current.ip += 1;
                 },
                 Op::Dup(local) => {
-                    return Err(VmError::AccessMissingLocal(local, stack_trace(&self.current, &self.frames, &self.funs)));
+                    return Err(VmError::AccessMissingLocal(local, self.stack_trace()));
                 },
                 Op::Swap(a, b) if a < self.current.locals.len() && b < self.current.locals.len() => {
                     self.current.locals.swap(a, b);
                     self.current.ip += 1;
                 },
                 Op::Swap(a, b) if b < self.current.locals.len() => {
-                    return Err(VmError::AccessMissingLocal(a, stack_trace(&self.current, &self.frames, &self.funs)));
+                    return Err(VmError::AccessMissingLocal(a, self.stack_trace()));
                 },
                 Op::Swap(_, b) => {
-                    return Err(VmError::AccessMissingLocal(b, stack_trace(&self.current, &self.frames, &self.funs)));
+                    return Err(VmError::AccessMissingLocal(b, self.stack_trace()));
                 },
                 Op::PushRet if self.current.ret.is_some() => {
                     let ret = std::mem::replace(&mut self.current.ret, None);
@@ -244,10 +244,27 @@ impl<T : Clone, S> Vm<T, S> {
                     self.current.ip += 1;
                 },
                 Op::PushRet => {
-                    return Err(VmError::AccessMissingReturn(stack_trace(&self.current, &self.frames, &self.funs)));
+                    return Err(VmError::AccessMissingReturn(self.stack_trace()));
                 },
             }
         }
+    }
+
+    fn stack_trace(&self) -> StackTrace {
+        struct RetAddr { fun : usize, instr : usize }
+
+        let mut stack = self.frames.iter().map(|x| RetAddr { fun: x.fun_id, instr: x.ip }).collect::<Vec<_>>();
+        stack.push(RetAddr { fun: self.current.fun_id, instr: self.current.ip + 1});
+
+        let mut trace = vec![];
+        for addr in stack {
+            // Note:  if the function was already pushed into the stack, then
+            // that means that it already resolved to a known function.  Don't
+            // have to check again that the fun map has it.
+            let name = self.funs[addr.fun].name.clone();
+            trace.push((name, addr.instr - 1));
+        }
+        trace
     }
 }
 
@@ -261,22 +278,4 @@ fn get_local<T : Clone>(index: usize, locals : Cow<Vec<T>>) -> Result<T, Box<dyn
             Cow::Owned(mut locals) => Ok(locals.swap_remove(index)),
         }
     }
-}
-
-fn stack_trace<T>(current : &Frame<T>, stack : &[Frame<T>], fun_map : &[Fun]) -> StackTrace {
-
-    struct RetAddr { fun : usize, instr : usize }
-
-    let mut stack = stack.iter().map(|x| RetAddr { fun: x.fun_id, instr: x.ip }).collect::<Vec<_>>();
-    stack.push(RetAddr { fun: current.fun_id, instr: current.ip + 1});
-
-    let mut trace = vec![];
-    for addr in stack {
-        // Note:  if the function was already pushed into the stack, then
-        // that means that it already resolved to a known function.  Don't
-        // have to check again that the fun map has it.
-        let name = fun_map[addr.fun].name.clone();
-        trace.push((name, addr.instr - 1));
-    }
-    trace
 }
