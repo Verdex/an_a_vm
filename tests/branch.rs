@@ -111,8 +111,8 @@ fn should_not_branch_on_active_coroutine() {
         name: "co".into(),
         instrs: vec![
             Op::Gen(0, vec![0]),
-            Op::Yield(0),
-            Op::Finish,
+            Op::CoYield(0),
+            Op::CoFinish,
         ],
     };
 
@@ -120,7 +120,7 @@ fn should_not_branch_on_active_coroutine() {
         name: "main".into(),
         instrs: vec![
             Op::Call(1, vec![]),
-            Op::FinishSetBranch(0),
+            Op::CoFinishSetBranch(0),
             Op::Branch(4),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
@@ -146,7 +146,7 @@ fn should_branch_on_finished_coroutine() {
     let co = Fun {
         name: "co".into(),
         instrs: vec![
-            Op::Finish,
+            Op::CoFinish,
         ],
     };
 
@@ -154,7 +154,7 @@ fn should_branch_on_finished_coroutine() {
         name: "main".into(),
         instrs: vec![
             Op::Call(1, vec![]),
-            Op::FinishSetBranch(0),
+            Op::CoFinishSetBranch(0),
             Op::Branch(4),
             Op::Gen(0, vec![0]),
             Op::Gen(0, vec![1]),
@@ -181,8 +181,8 @@ fn should_branch_on_finished_coroutine_with_active_coroutine_present() {
         name: "co".into(),
         instrs: vec![
             Op::Gen(0, vec![0]),
-            Op::Yield(0),
-            Op::Finish,
+            Op::CoYield(0),
+            Op::CoFinish,
         ],
     };
 
@@ -191,8 +191,8 @@ fn should_branch_on_finished_coroutine_with_active_coroutine_present() {
         instrs: vec![
             Op::Call(1, vec![]),
             Op::Call(1, vec![]),
-            Op::Resume(1),
-            Op::FinishSetBranch(1),
+            Op::CoResume(1),
+            Op::CoFinishSetBranch(1),
             Op::Branch(6),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
@@ -219,8 +219,8 @@ fn should_branch_on_finished_coroutine_in_function_where_parent_has_active_corou
         name: "co".into(),
         instrs: vec![
             Op::Gen(0, vec![0]),
-            Op::Yield(0),
-            Op::Finish,
+            Op::CoYield(0),
+            Op::CoFinish,
         ],
     };
 
@@ -228,8 +228,8 @@ fn should_branch_on_finished_coroutine_in_function_where_parent_has_active_corou
         name: "child".into(),
         instrs: vec![
             Op::Call(2, vec![]),
-            Op::Resume(0),
-            Op::FinishSetBranch(0),
+            Op::CoResume(0),
+            Op::CoFinishSetBranch(0),
             Op::Branch(5),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
@@ -267,8 +267,8 @@ fn should_branch_on_finished_coroutine_in_dyn_function_where_parent_has_active_c
         name: "co".into(),
         instrs: vec![
             Op::Gen(0, vec![0]),
-            Op::Yield(0),
-            Op::Finish,
+            Op::CoYield(0),
+            Op::CoFinish,
         ],
     };
 
@@ -276,8 +276,8 @@ fn should_branch_on_finished_coroutine_in_dyn_function_where_parent_has_active_c
         name: "child".into(),
         instrs: vec![
             Op::Call(2, vec![]),
-            Op::Resume(0),
-            Op::FinishSetBranch(0),
+            Op::CoResume(0),
+            Op::CoFinishSetBranch(0),
             Op::Branch(5),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
@@ -317,8 +317,8 @@ fn should_branch_on_finished_coroutine_in_resumed_coroutine_where_parent_has_act
         name: "co".into(),
         instrs: vec![
             Op::Gen(0, vec![0]),
-            Op::Yield(0),
-            Op::Finish,
+            Op::CoYield(0),
+            Op::CoFinish,
         ],
     };
 
@@ -327,14 +327,14 @@ fn should_branch_on_finished_coroutine_in_resumed_coroutine_where_parent_has_act
         instrs: vec![
             Op::Call(2, vec![]),
             Op::Gen(0, vec![0]),
-            Op::Yield(0),
-            Op::Resume(0),
-            Op::FinishSetBranch(0),
+            Op::CoYield(0),
+            Op::CoResume(0),
+            Op::CoFinishSetBranch(0),
             Op::Branch(7),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
-            Op::Yield(1),
-            Op::Finish,
+            Op::CoYield(1),
+            Op::CoFinish,
         ],
     };
 
@@ -343,7 +343,7 @@ fn should_branch_on_finished_coroutine_in_resumed_coroutine_where_parent_has_act
         instrs: vec![
             Op::Call(2, vec![]),
             Op::Call(1, vec![]),
-            Op::Resume(1),
+            Op::CoResume(1),
             Op::PushRet,
             Op::ReturnLocal(0),
         ],

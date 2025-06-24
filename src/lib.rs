@@ -148,7 +148,7 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                     }
                 },
-                Op::Yield(slot) => {
+                Op::CoYield(slot) => {
 
                     let ret_target = match get_local(slot, Cow::Borrowed(&self.current.locals)) {
                         Ok(v) => v,
@@ -170,7 +170,7 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                     }
                 },
-                Op::Finish => {
+                Op::CoFinish => {
                     match self.frames.pop() {
                         None => {
                             // Note: Top level yields are not supported.
@@ -184,7 +184,7 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                     }
                 },
-                Op::Resume(coroutine) if coroutine < self.current.coroutines.len() => {
+                Op::CoResume(coroutine) if coroutine < self.current.coroutines.len() => {
                     match self.current.coroutines.remove(coroutine) { 
                         Coroutine::Active(frame) => {
                             self.current.ip += 1;
@@ -196,10 +196,10 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                     }
                 },
-                Op::Resume(coroutine) => {
+                Op::CoResume(coroutine) => {
                     return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
                 },
-                Op::FinishSetBranch(coroutine) if coroutine < self.current.coroutines.len() => {
+                Op::CoFinishSetBranch(coroutine) if coroutine < self.current.coroutines.len() => {
                     match self.current.coroutines[coroutine] {
                         Coroutine::Finished => { 
                             self.current.branch = true; 
@@ -209,7 +209,7 @@ impl<T : Clone, S> Vm<T, S> {
                     }
                     self.current.ip += 1;
                 },
-                Op::FinishSetBranch(coroutine) => { 
+                Op::CoFinishSetBranch(coroutine) => { 
                     return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
                 },
                 Op::Drop(local) if local < self.current.locals.len() => {
