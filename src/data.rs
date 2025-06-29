@@ -13,6 +13,7 @@ pub enum Op {
     CoYield(usize),
     CoFinish,
     CoResume(usize),
+    // TODO remove after GenOps VM refactor
     CoFinishSetBranch(usize),
     CoDrop(usize),
     CoDup(usize), 
