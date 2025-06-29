@@ -16,6 +16,7 @@ pub struct Vm<T, S> {
     current : Frame<T>,
 }
 
+#[derive(Clone)]
 struct Frame<T> {
     fun_id : usize,
     ip : usize,
@@ -26,6 +27,7 @@ struct Frame<T> {
     coroutines : Vec<Coroutine<T>>,
 }
 
+#[derive(Clone)]
 enum Coroutine<T> {
     Active(Frame<T>),
     Finished,
@@ -220,8 +222,9 @@ impl<T : Clone, S> Vm<T, S> {
                     return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
                 },
                 Op::CoDup(coroutine) if coroutine < self.current.coroutines.len() => {
-
-                    // TODO
+                    let target = self.current.coroutines[coroutine].clone();
+                    self.current.coroutines.push(target);
+                    self.current.ip += 1;
                 },
                 Op::CoDup(coroutine) => {
                     return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
