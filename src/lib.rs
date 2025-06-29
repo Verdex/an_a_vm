@@ -213,7 +213,8 @@ impl<T : Clone, S> Vm<T, S> {
                     return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
                 },
                 Op::CoDrop(coroutine) if coroutine < self.current.coroutines.len() => {
-                    // TODO
+                    self.current.coroutines.remove(coroutine);
+                    self.current.ip += 1;
                 },
                 Op::CoDrop(coroutine) => {
                     return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
@@ -226,8 +227,8 @@ impl<T : Clone, S> Vm<T, S> {
                     return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
                 },
                 Op::CoSwap(a, b) if a < self.current.coroutines.len() && b < self.current.coroutines.len() => {
-
-                    // TODO
+                    self.current.coroutines.swap(a, b);
+                    self.current.ip += 1;
                 },
                 Op::CoSwap(a, b) if b < self.current.coroutines.len() => {
                     return Err(VmError::AccessMissingCoroutine(a, self.stack_trace()));
