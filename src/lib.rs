@@ -212,6 +212,29 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::CoFinishSetBranch(coroutine) => { 
                     return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
                 },
+                Op::CoDrop(coroutine) if coroutine < self.current.coroutines.len() => {
+                    // TODO
+                },
+                Op::CoDrop(coroutine) => {
+                    return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
+                },
+                Op::CoDup(coroutine) if coroutine < self.current.coroutines.len() => {
+
+                    // TODO
+                },
+                Op::CoDup(coroutine) => {
+                    return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
+                },
+                Op::CoSwap(a, b) if a < self.current.coroutines.len() && b < self.current.coroutines.len() => {
+
+                    // TODO
+                },
+                Op::CoSwap(a, b) if b < self.current.coroutines.len() => {
+                    return Err(VmError::AccessMissingCoroutine(a, self.stack_trace()));
+                },
+                Op::CoSwap(_, b) => {
+                    return Err(VmError::AccessMissingCoroutine(b, self.stack_trace()));
+                },
                 Op::Drop(local) if local < self.current.locals.len() => {
                     self.current.locals.remove(local);
                     self.current.ip += 1;
