@@ -16,6 +16,7 @@ pub struct Vm<T, S> {
     current : Frame<T>,
 }
 
+#[derive(Clone)]
 struct Frame<T> {
     fun_id : usize,
     ip : usize,
@@ -26,6 +27,7 @@ struct Frame<T> {
     coroutines : Vec<Coroutine<T>>,
 }
 
+#[derive(Clone)]
 enum Coroutine<T> {
     Active(Frame<T>),
     Finished,
@@ -148,7 +150,7 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                     }
                 },
-                Op::Yield(slot) => {
+                Op::CoYield(slot) => {
 
                     let ret_target = match get_local(slot, Cow::Borrowed(&self.current.locals)) {
                         Ok(v) => v,
@@ -170,7 +172,7 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                     }
                 },
-                Op::Finish => {
+                Op::CoFinish => {
                     match self.frames.pop() {
                         None => {
                             // Note: Top level yields are not supported.
@@ -184,7 +186,7 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                     }
                 },
-                Op::Resume(coroutine) if coroutine < self.current.coroutines.len() => {
+                Op::CoResume(coroutine) if coroutine < self.current.coroutines.len() => {
                     match self.current.coroutines.remove(coroutine) { 
                         Coroutine::Active(frame) => {
                             self.current.ip += 1;
@@ -196,10 +198,10 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                     }
                 },
-                Op::Resume(coroutine) => {
+                Op::CoResume(coroutine) => {
                     return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
                 },
-                Op::FinishSetBranch(coroutine) if coroutine < self.current.coroutines.len() => {
+                Op::CoFinishSetBranch(coroutine) if coroutine < self.current.coroutines.len() => {
                     match self.current.coroutines[coroutine] {
                         Coroutine::Finished => { 
                             self.current.branch = true; 
@@ -209,8 +211,33 @@ impl<T : Clone, S> Vm<T, S> {
                     }
                     self.current.ip += 1;
                 },
-                Op::FinishSetBranch(coroutine) => { 
+                Op::CoFinishSetBranch(coroutine) => { 
                     return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
+                },
+                Op::CoDrop(coroutine) if coroutine < self.current.coroutines.len() => {
+                    self.current.coroutines.remove(coroutine);
+                    self.current.ip += 1;
+                },
+                Op::CoDrop(coroutine) => {
+                    return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
+                },
+                Op::CoDup(coroutine) if coroutine < self.current.coroutines.len() => {
+                    let target = self.current.coroutines[coroutine].clone();
+                    self.current.coroutines.push(target);
+                    self.current.ip += 1;
+                },
+                Op::CoDup(coroutine) => {
+                    return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
+                },
+                Op::CoSwap(a, b) if a < self.current.coroutines.len() && b < self.current.coroutines.len() => {
+                    self.current.coroutines.swap(a, b);
+                    self.current.ip += 1;
+                },
+                Op::CoSwap(a, b) if b < self.current.coroutines.len() => {
+                    return Err(VmError::AccessMissingCoroutine(a, self.stack_trace()));
+                },
+                Op::CoSwap(_, b) => {
+                    return Err(VmError::AccessMissingCoroutine(b, self.stack_trace()));
                 },
                 Op::Drop(local) if local < self.current.locals.len() => {
                     self.current.locals.remove(local);

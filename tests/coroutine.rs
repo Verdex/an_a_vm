@@ -12,8 +12,8 @@ fn should_yield() {
         name: "co".into(),
         instrs: vec![
             Op::Gen(0, vec![0]),
-            Op::Yield(0),
-            Op::Finish,
+            Op::CoYield(0),
+            Op::CoFinish,
         ],
     };
 
@@ -48,12 +48,12 @@ fn should_resume() {
             Op::Gen(0, vec![0]),
             Op::Gen(1, vec![0, 0]),
             Op::PushRet,
-            Op::Yield(0),
+            Op::CoYield(0),
             Op::Gen(0, vec![0]),
             Op::Gen(1, vec![1, 2]),
             Op::PushRet,
-            Op::Yield(3),
-            Op::Finish,
+            Op::CoYield(3),
+            Op::CoFinish,
         ],
     };
 
@@ -62,7 +62,7 @@ fn should_resume() {
         instrs: vec![
             Op::Call(1, vec![]),
             Op::PushRet,
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,
             Op::Gen(1, vec![0, 1]),
             Op::PushRet,
@@ -92,11 +92,11 @@ fn should_handle_params() {
         instrs: vec![
             Op::Gen(1, vec![0, 1]),
             Op::PushRet,
-            Op::Yield(3),
+            Op::CoYield(3),
             Op::Gen(2, vec![3, 2]),
             Op::PushRet,
-            Op::Yield(4),
-            Op::Finish,
+            Op::CoYield(4),
+            Op::CoFinish,
         ],
     };
 
@@ -111,7 +111,7 @@ fn should_handle_params() {
             Op::Drop(0),
             Op::Drop(0),
             Op::PushRet,
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,
             Op::Gen(2, vec![1, 0]),
             Op::PushRet,
@@ -142,11 +142,11 @@ fn should_handle_dyn_call_params() {
         instrs: vec![
             Op::Gen(1, vec![0, 1]),
             Op::PushRet,
-            Op::Yield(3),
+            Op::CoYield(3),
             Op::Gen(2, vec![3, 2]),
             Op::PushRet,
-            Op::Yield(4),
-            Op::Finish,
+            Op::CoYield(4),
+            Op::CoFinish,
         ],
     };
 
@@ -164,7 +164,7 @@ fn should_handle_dyn_call_params() {
             Op::Drop(0),
             Op::Drop(0),
             Op::PushRet,
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,
             Op::Gen(2, vec![0, 1]),
             Op::PushRet,
@@ -191,9 +191,9 @@ fn should_preserve_active_coroutine_for_finish_set_branch() {
         name: "co".into(),
         instrs: vec![
             Op::Gen(0, vec![0]),
-            Op::Yield(0),
-            Op::Yield(0),
-            Op::Finish,
+            Op::CoYield(0),
+            Op::CoYield(0),
+            Op::CoFinish,
         ],
     };
 
@@ -201,9 +201,9 @@ fn should_preserve_active_coroutine_for_finish_set_branch() {
         name: "main".into(),
         instrs: vec![
             Op::Call(1, vec![]),
-            Op::FinishSetBranch(0),
+            Op::CoFinishSetBranch(0),
             Op::Branch(6),
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::Gen(0, vec![1]),
             Op::ReturnLocal(0),
             Op::Gen(0, vec![0]),
@@ -232,10 +232,10 @@ fn should_remove_finished_coroutine_for_finish_set_branch() {
         instrs: vec![
             Op::Gen(0, vec![0]),
             Op::Gen(0, vec![1]),
-            Op::Yield(0),
-            Op::Yield(0),
-            Op::Yield(1),
-            Op::Finish,
+            Op::CoYield(0),
+            Op::CoYield(0),
+            Op::CoYield(1),
+            Op::CoFinish,
         ],
     };
 
@@ -245,17 +245,17 @@ fn should_remove_finished_coroutine_for_finish_set_branch() {
             Op::Call(1, vec![]),
             Op::Call(1, vec![]),
             Op::Call(1, vec![]),
-            Op::Resume(0),
-            Op::Resume(2),
-            Op::Resume(2),
-            Op::Resume(0),
-            Op::Resume(2),
-            Op::Resume(2),
-            Op::FinishSetBranch(2),
-            Op::FinishSetBranch(1),
-            Op::Resume(0),
+            Op::CoResume(0),
+            Op::CoResume(2),
+            Op::CoResume(2),
+            Op::CoResume(0),
+            Op::CoResume(2),
+            Op::CoResume(2),
+            Op::CoFinishSetBranch(2),
+            Op::CoFinishSetBranch(1),
+            Op::CoResume(0),
             Op::PushRet, // 1 on stack
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,  // 2 on stack
             Op::Gen(1, vec![0, 1]),
             Op::Drop(0),
@@ -287,7 +287,7 @@ fn should_move_coroutine_position_on_resume_yield() {
     let co = Fun {
         name: "co".into(),
         instrs: vec![
-            Op::Yield(0),
+            Op::CoYield(0),
             Op::Gen(1, vec![]),
             Op::Branch(0),
         ],
@@ -319,25 +319,25 @@ fn should_move_coroutine_position_on_resume_yield() {
             Op::Branch(END), 
             Op::Drop(4),
 
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,
             Op::Gen(2, vec![4, 0]),
             Op::Branch(END),
             Op::Drop(4),
 
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,
             Op::Gen(2, vec![4, 1]),
             Op::Branch(END),
             Op::Drop(4),
 
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,
             Op::Gen(2, vec![4, 2]),
             Op::Branch(END),
             Op::Drop(4),
 
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,
             Op::Gen(2, vec![4, 0]),
             Op::Branch(END),
@@ -368,7 +368,7 @@ fn should_handle_coroutine_with_interleaved_coroutines() {
     let inf = Fun {
         name: "inf".into(),
         instrs: vec![
-            Op::Yield(0),
+            Op::CoYield(0),
             Op::Gen(1, vec![]),
             Op::Branch(0),
         ],
@@ -382,17 +382,17 @@ fn should_handle_coroutine_with_interleaved_coroutines() {
             Op::Gen(0, vec![2]),
             Op::Call(2, vec![0]),
             Op::PushRet,
-            Op::Yield(3),
+            Op::CoYield(3),
             Op::Call(2, vec![1]),
             Op::PushRet,
             Op::Gen(2, vec![3, 4]),
             Op::PushRet,
-            Op::Yield(5),
+            Op::CoYield(5),
             Op::Call(2, vec![2]),
             Op::PushRet,
             Op::Gen(2, vec![5, 6]),
             Op::PushRet,
-            Op::Yield(7),
+            Op::CoYield(7),
             Op::Drop(6),
             Op::Drop(5),
             Op::Drop(4),
@@ -400,22 +400,22 @@ fn should_handle_coroutine_with_interleaved_coroutines() {
             Op::Drop(2),
             Op::Drop(1),
             Op::Drop(0),
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,
             Op::Gen(2, vec![0, 1]),
             Op::Drop(0),
             Op::Drop(0),
             Op::PushRet,
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,
             Op::Gen(2, vec![0, 1]),
             Op::Drop(0),
             Op::Drop(0),
             Op::PushRet,
-            Op::Yield(0),
+            Op::CoYield(0),
             Op::Gen(1, vec![]),
             Op::Branch(23),
-            Op::Finish,
+            Op::CoFinish,
         ],
     };
 
@@ -424,56 +424,56 @@ fn should_handle_coroutine_with_interleaved_coroutines() {
         instrs: vec![
             Op::Call(1, vec![]),
             Op::PushRet,
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,
             Op::Gen(2, vec![0, 1]),
             Op::Drop(0),
             Op::Drop(0),
             Op::PushRet, // 1 + 3
 
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,
             Op::Gen(2, vec![0, 1]),
             Op::Drop(0),
             Op::Drop(0),
             Op::PushRet, // 4 + 6
 
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,
             Op::Gen(2, vec![0, 1]),
             Op::Drop(0),
             Op::Drop(0), 
             Op::PushRet, // 10 + 9
 
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,
             Op::Gen(2, vec![0, 1]),
             Op::Drop(0),
             Op::Drop(0),
             Op::PushRet, // 19 + 13
 
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,
             Op::Gen(2, vec![0, 1]),
             Op::Drop(0),
             Op::Drop(0),
             Op::PushRet, // 32 + 18
 
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,
             Op::Gen(2, vec![0, 1]),
             Op::Drop(0),
             Op::Drop(0),
             Op::PushRet, // 50 + 21
 
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,
             Op::Gen(2, vec![0, 1]),
             Op::Drop(0),
             Op::Drop(0),
             Op::PushRet, // 71 + 25
 
-            Op::Resume(0),
+            Op::CoResume(0),
             Op::PushRet,
             Op::Gen(2, vec![0, 1]),
             Op::Drop(0),

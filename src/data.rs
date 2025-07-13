@@ -6,14 +6,18 @@ pub enum Op {
     Return,
     Branch(usize),
     DynCall(Vec<usize>),
-    Yield(usize),
-    Finish,
-    Resume(usize),
-    FinishSetBranch(usize),
     Drop(usize),
     Dup(usize),
     Swap(usize, usize),
     PushRet,
+    CoYield(usize),
+    CoFinish,
+    CoResume(usize),
+    // TODO remove after GenOps VM refactor
+    CoFinishSetBranch(usize),
+    CoDrop(usize),
+    CoDup(usize), 
+    CoSwap(usize, usize),
 }
 
 pub struct Fun {
