@@ -10,6 +10,7 @@ pub enum Op<T> {
     Dup(usize),
     Swap(usize, usize),
     PushRet,
+    PushValue(T),
     CoYield(usize),
     CoFinish,
     CoResume(usize),
