@@ -273,7 +273,7 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::PushRet => {
                     return Err(VmError::AccessMissingReturn(self.stack_trace()));
                 },
-                Op::PushValue(ref t) => {
+                Op::PushLocal(ref t) => {
                     self.current.locals.push(t.clone());
                     self.current.ip += 1;
                 }

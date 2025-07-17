@@ -117,11 +117,11 @@ fn should_push_return() {
 }
 
 #[test]
-fn should_push_value() {
+fn should_push_local() {
     let main = Fun { 
         name: "main".into(),
         instrs: vec![
-            Op::PushValue(3),
+            Op::PushLocal(3),
             Op::ReturnLocal(0),
         ],
     };
