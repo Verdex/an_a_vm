@@ -1,4 +1,13 @@
 
+// TODO Types instead of usize will be a bit more clear, but ultimately annoying to enter in.  Decide which way makes sense.
+
+// TODO With CoSwap there's no reason to be moving around Coroutines after they return
+
+// TODO Rc instead of Box (for names)
+// TODO Rc instead of Vec?  (surely not in all instances)
+
+// TODO does frame allow lambda impl?
+
 pub enum Op<T> {
     Gen(usize, Vec<usize>),
     Call(usize, Vec<usize>),
@@ -14,7 +23,7 @@ pub enum Op<T> {
     CoYield(usize),
     CoFinish,
     CoResume(usize),
-    // TODO (maybe) remove after GenOps VM refactor
+    // TODO now with CoDrop this op doesn't need to delete the coroutine
     CoFinishSetBranch(usize),
     CoDrop(usize),
     CoDup(usize), 
@@ -26,6 +35,7 @@ pub struct Fun<T> {
     pub instrs : Vec<Op<T>>,
 }
 
+// TODO see if this can be replaced with Frame which will need to be moved to data
 pub struct OpEnv<'a, T, S> {
     pub locals : &'a mut Vec<T>,
     pub globals : &'a mut Vec<S>,

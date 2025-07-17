@@ -494,3 +494,5 @@ fn should_handle_coroutine_with_interleaved_coroutines() {
 
     assert_eq!(data, 126);
 }
+
+// TODO Add tests for coswap, codup, and codrop
