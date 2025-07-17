@@ -1,5 +1,5 @@
 
-pub enum Op {
+pub enum Op<T> {
     Gen(usize, Vec<usize>),
     Call(usize, Vec<usize>),
     ReturnLocal(usize), 
@@ -10,19 +10,20 @@ pub enum Op {
     Dup(usize),
     Swap(usize, usize),
     PushRet,
+    PushLocal(T),
     CoYield(usize),
     CoFinish,
     CoResume(usize),
-    // TODO remove after GenOps VM refactor
+    // TODO (maybe) remove after GenOps VM refactor
     CoFinishSetBranch(usize),
     CoDrop(usize),
     CoDup(usize), 
     CoSwap(usize, usize),
 }
 
-pub struct Fun {
+pub struct Fun<T> {
     pub name : Box<str>,
-    pub instrs : Vec<Op>,
+    pub instrs : Vec<Op<T>>,
 }
 
 pub struct OpEnv<'a, T, S> {

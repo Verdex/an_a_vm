@@ -9,7 +9,7 @@ use std::borrow::Cow;
 
 
 pub struct Vm<T, S> {
-    funs : Vec<Fun>,
+    funs : Vec<Fun<T>>,
     ops : Vec<GenOp<T, S>>,
     globals: Vec<S>,
     frames : Vec<Frame<T>>,
@@ -34,7 +34,7 @@ enum Coroutine<T> {
 }
 
 impl<T : Clone, S> Vm<T, S> {
-    pub fn new(funs : Vec<Fun>, ops : Vec<GenOp<T, S>>) -> Self {
+    pub fn new(funs : Vec<Fun<T>>, ops : Vec<GenOp<T, S>>) -> Self {
         let current = Frame { fun_id: 0, ip: 0, ret: None, branch: false, dyn_call: None, locals: vec![], coroutines: vec![] };
         Vm { funs, ops, globals: vec![], frames: vec![], current }
     }
@@ -273,6 +273,10 @@ impl<T : Clone, S> Vm<T, S> {
                 Op::PushRet => {
                     return Err(VmError::AccessMissingReturn(self.stack_trace()));
                 },
+                Op::PushLocal(ref t) => {
+                    self.current.locals.push(t.clone());
+                    self.current.ip += 1;
+                }
             }
         }
     }

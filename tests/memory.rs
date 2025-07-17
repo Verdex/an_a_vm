@@ -115,3 +115,22 @@ fn should_push_return() {
 
     assert_eq!(data, 3);
 }
+
+#[test]
+fn should_push_local() {
+    let main = Fun { 
+        name: "main".into(),
+        instrs: vec![
+            Op::PushLocal(3),
+            Op::ReturnLocal(0),
+        ],
+    };
+
+    let mut vm : Vm<u8, u8> = Vm::new(
+        vec![main], 
+        vec![]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 3);
+}
