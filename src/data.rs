@@ -21,9 +21,9 @@ pub enum Op<T> {
     CoSwap(usize, usize),
 }
 
-pub struct Fun {
+pub struct Fun<T> {
     pub name : Box<str>,
-    pub instrs : Vec<Op>,
+    pub instrs : Vec<Op<T>>,
 }
 
 pub struct OpEnv<'a, T, S> {
