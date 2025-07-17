@@ -14,7 +14,7 @@ pub enum Op<T> {
     CoYield(usize),
     CoFinish,
     CoResume(usize),
-    // TODO remove after GenOps VM refactor
+    // TODO (maybe) remove after GenOps VM refactor
     CoFinishSetBranch(usize),
     CoDrop(usize),
     CoDup(usize), 
