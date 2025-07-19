@@ -30,7 +30,17 @@ struct Frame<T> {
 #[derive(Clone)]
 enum Coroutine<T> {
     Active(Frame<T>),
+    Running,
     Finished,
+}
+
+impl<T> Coroutine<T> {
+    pub fn is_running(&self) -> bool {
+        match self { 
+            Coroutine::Running => true,
+            _ => false,
+        }
+    }
 }
 
 impl<T : Clone, S> Vm<T, S> {
@@ -167,8 +177,15 @@ impl<T : Clone, S> Vm<T, S> {
                         Some(frame) => {
                             self.current.ip += 1;
                             let coroutine = std::mem::replace(&mut self.current, frame);
-                            self.current.coroutines.push(Coroutine::Active(coroutine));
                             self.current.ret = Some(ret_target);
+                            match self.current.coroutines.iter().position(|x| x.is_running()) {
+                                Some(index) => {
+                                    let _ = std::mem::replace(&mut self.current.coroutines[index], Coroutine::Active(coroutine));
+                                },
+                                None => { 
+                                    self.current.coroutines.push(Coroutine::Active(coroutine));
+                                },
+                            }
                         },
                     }
                 },
@@ -180,14 +197,23 @@ impl<T : Clone, S> Vm<T, S> {
                         },
                         Some(frame) => {
                             self.current = frame;
-
-                            self.current.coroutines.push(Coroutine::Finished);
                             self.current.ret = None;
+
+                            match self.current.coroutines.iter().position(|x| x.is_running()) {
+                                Some(index) => {
+                                    let _ = std::mem::replace(&mut self.current.coroutines[index], Coroutine::Finished);
+                                },
+                                None => { 
+                                    // TODO this represents a coroutine that has no yields and should have 
+                                    // a test to go along with it
+                                    self.current.coroutines.push(Coroutine::Finished);
+                                },
+                            }
                         },
                     }
                 },
                 Op::CoResume(coroutine) if coroutine < self.current.coroutines.len() => {
-                    match self.current.coroutines.remove(coroutine) { 
+                    match std::mem::replace(&mut self.current.coroutines[coroutine], Coroutine::Running) { 
                         Coroutine::Active(frame) => {
                             self.current.ip += 1;
                             let old_current = std::mem::replace(&mut self.current, frame);
@@ -196,6 +222,7 @@ impl<T : Clone, S> Vm<T, S> {
                         Coroutine::Finished => {
                             return Err(VmError::ResumeFinishedCoroutine(coroutine, self.stack_trace()))
                         },
+                        Coroutine::Running => { unreachable!(); },
                     }
                 },
                 Op::CoResume(coroutine) => {
@@ -205,9 +232,9 @@ impl<T : Clone, S> Vm<T, S> {
                     match self.current.coroutines[coroutine] {
                         Coroutine::Finished => { 
                             self.current.branch = true; 
-                            self.current.coroutines.remove(coroutine);
+                            self.current.coroutines.remove(coroutine); // TODO
                         },
-                        Coroutine::Active { .. } => { self.current.branch = false; },
+                        _ => { self.current.branch = false; },
                     }
                     self.current.ip += 1;
                 },
