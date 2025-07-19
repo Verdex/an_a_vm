@@ -277,7 +277,7 @@ fn should_remove_finished_coroutine_for_finish_set_branch() {
 }
 
 #[test]
-fn should_move_coroutine_position_on_resume_yield() {
+fn should_not_move_coroutine_position_on_resume_yield() {
     const END : usize = 40;
 
     let push_from_global = common::gen_push_global();
@@ -325,13 +325,13 @@ fn should_move_coroutine_position_on_resume_yield() {
             Op::Branch(END),
             Op::Drop(4),
 
-            Op::CoResume(0),
+            Op::CoResume(1),
             Op::PushRet,
             Op::Gen(2, vec![4, 1]),
             Op::Branch(END),
             Op::Drop(4),
 
-            Op::CoResume(0),
+            Op::CoResume(2),
             Op::PushRet,
             Op::Gen(2, vec![4, 2]),
             Op::Branch(END),
