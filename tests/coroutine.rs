@@ -382,22 +382,22 @@ fn should_handle_coroutine_with_interleaved_coroutines() {
     let com = Fun {
         name: "com".into(),
         instrs: vec![
-            Op::Gen(0, vec![0]),
-            Op::Gen(0, vec![1]),
-            Op::Gen(0, vec![2]),
-            Op::Call(2, vec![0]),
+            Op::Gen(0, vec![0]), // 1
+            Op::Gen(0, vec![1]), // 2
+            Op::Gen(0, vec![2]), // 3
+            Op::Call(2, vec![0]), // Coroutine 0 returns 1 forever
             Op::PushRet,
-            Op::CoYield(3),
-            Op::Call(2, vec![1]),
+            Op::CoYield(3), // yield 1
+            Op::Call(2, vec![1]), // coroutine 1 returns 2 forever
             Op::PushRet,
-            Op::Gen(2, vec![3, 4]),
+            Op::Gen(2, vec![3, 4]), // 1 + 2
             Op::PushRet,
-            Op::CoYield(5),
-            Op::Call(2, vec![2]),
+            Op::CoYield(5), // yield 3
+            Op::Call(2, vec![2]), // coroutine 2 returns 3 forever
             Op::PushRet,
-            Op::Gen(2, vec![5, 6]),
+            Op::Gen(2, vec![5, 6]), // 3 + 3
             Op::PushRet,
-            Op::CoYield(7),
+            Op::CoYield(7), // yield 6
             Op::Drop(6),
             Op::Drop(5),
             Op::Drop(4),
@@ -405,13 +405,13 @@ fn should_handle_coroutine_with_interleaved_coroutines() {
             Op::Drop(2),
             Op::Drop(1),
             Op::Drop(0),
-            Op::CoResume(0),
+            Op::CoResume(0), // line 23
             Op::PushRet,
             Op::Gen(2, vec![0, 1]),
             Op::Drop(0),
             Op::Drop(0),
             Op::PushRet,
-            Op::CoResume(0),
+            Op::CoResume(1),
             Op::PushRet,
             Op::Gen(2, vec![0, 1]),
             Op::Drop(0),
@@ -419,6 +419,8 @@ fn should_handle_coroutine_with_interleaved_coroutines() {
             Op::PushRet,
             Op::CoYield(0),
             Op::Gen(1, vec![]),
+            Op::CoSwap(0, 2),
+            Op::CoSwap(1, 2),
             Op::Branch(23),
             Op::CoFinish,
         ],
@@ -438,7 +440,7 @@ fn should_handle_coroutine_with_interleaved_coroutines() {
 
             Op::CoResume(0),
             Op::PushRet,
-            Op::Gen(2, vec![0, 1]),
+            Op::Gen(2, vec![0, 1]), 
             Op::Drop(0),
             Op::Drop(0),
             Op::PushRet, // 4 + 6
