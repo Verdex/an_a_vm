@@ -359,6 +359,11 @@ fn should_not_move_coroutine_position_on_resume_yield() {
     assert_eq!(data, 1);
 }
 
+// TODO add test of coroutine that has coroutines and the inner coroutines produce different values the 
+// more times they're iterated through
+
+// TODO a recursive coroutine ought to work correctly
+
 #[test]
 fn should_handle_coroutine_with_interleaved_coroutines() {
     let push_from_global = common::gen_push_global();
