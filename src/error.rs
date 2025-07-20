@@ -1,4 +1,6 @@
 
+use std::rc::Rc;
+
 pub type StackTrace = Vec<(Box<str>, usize)>;
 
 #[derive(Debug)]
@@ -9,7 +11,7 @@ pub enum VmError {
     GenOpDoesNotExist(usize, StackTrace),
     AccessMissingReturn(StackTrace),
     AccessMissingLocal(usize, StackTrace),
-    GenOpError(Box<str>, Box<dyn std::error::Error>, StackTrace),
+    GenOpError(Rc<str>, Box<dyn std::error::Error>, StackTrace),
     TopLevelYield(usize),
     AccessMissingCoroutine(usize, StackTrace),
     ResumeFinishedCoroutine(usize, StackTrace),

@@ -5,6 +5,8 @@
 
 // TODO does frame allow lambda impl?
 
+use std::rc::Rc;
+
 pub enum Op<T> {
     Gen(usize, Vec<usize>),
     Call(usize, Vec<usize>),
@@ -42,11 +44,19 @@ pub struct OpEnv<'a, T, S> {
     pub dyn_call : &'a mut Option<usize>,
 }
 
-pub struct GenOp<T, S> {
-    pub name : Box<str>,
+pub struct VmEnv<'a, T, S> {
+    pub globals: &'a mut Vec<S>,
+    pub frames : &'a mut Vec<Frame<T>>,
+    pub current : &'a mut Frame<T>,
+}
+
+pub enum GenOp<T, S> {
+    Vm { name : Rc<str>, op : for<'a> fn(vm : VmEnv<'a, T, S>, params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> }
+    /*pub name : Box<str>,
     // TODO maybe &vec<_> => &[]
     // TODO Global op, Local op, Frame op, Vm op
     pub op : for<'a> fn(env : OpEnv<'a, T, S>, params : &Vec<usize>) -> Result<(), Box<dyn std::error::Error>>,
+    */
 }
 
 #[derive(Clone)]

@@ -6,13 +6,14 @@ use crate::error::*;
 use crate::data::*;
 
 use std::borrow::Cow;
+use std::rc::Rc;
 
 pub struct Vm<T, S> {
     funs : Vec<Fun<T>>,
     ops : Vec<GenOp<T, S>>,
-    pub globals: Vec<S>,
-    pub frames : Vec<Frame<T>>,
-    pub current : Frame<T>,
+    globals: Vec<S>,
+    frames : Vec<Frame<T>>,
+    current : Frame<T>,
 }
 
 impl<T : Clone, S> Vm<T, S> {
@@ -41,20 +42,39 @@ impl<T : Clone, S> Vm<T, S> {
 
             match self.funs[self.current.fun_id].instrs[self.current.ip] {
                 Op::Gen(op_index, ref params) if op_index < self.ops.len() => {
-                    let env = OpEnv { 
+                    /*let env = OpEnv { 
                         locals: &mut self.current.locals, 
                         globals: &mut self.globals,
                         ret: &mut self.current.ret, 
                         branch: &mut self.current.branch, 
                         dyn_call: &mut self.current.dyn_call,
-                    };
-                    match (self.ops[op_index].op)(env, params) {
+                    };*/
+                    match &self.ops[op_index] {
+                        GenOp::Vm { name, op } => {
+                            let env = VmEnv { 
+                                globals: &mut self.globals,
+                                frames: &mut self.frames, 
+                                current: &mut self.current,
+                            };
+
+                            match op(env, params) {
+                                Ok(v) => { 
+                                    self.current.ret = v;
+                                },
+                                Err(e) => {
+                                    return Err(VmError::GenOpError(Rc::clone(name), e, self.stack_trace()));
+                                },
+                            }
+
+                        },
+                    }
+                    /*match (self.ops[op_index].op)(env, params) {
                         Ok(()) => { },
                         Err(e) => { 
                             let name = self.ops[op_index].name.clone();
                             return Err(VmError::GenOpError(name, e, self.stack_trace())); 
                         }
-                    }
+                    }*/
                     self.current.ip += 1;
                 },
                 Op::Gen(op_index, _) => {
