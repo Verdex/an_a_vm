@@ -41,6 +41,7 @@ pub struct VmEnv<'a, T, S> {
     pub current : &'a mut Frame<T>,
 }
 
+// TODO add gen op tests for each of these items
 pub enum GenOp<T, S> {
     Vm { name : Rc<str>, op : for<'a> fn(vm : VmEnv<'a, T, S>, params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> },
     Global { name : Rc<str>, op : fn(globals : &mut Vec<S>, params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> },
