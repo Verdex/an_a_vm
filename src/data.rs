@@ -45,5 +45,6 @@ pub struct OpEnv<'a, T, S> {
 pub struct GenOp<T, S> {
     pub name : Box<str>,
     // TODO maybe &vec<_> => &[]
+    // TODO Global op, Local op, Frame op, Vm op
     pub op : for<'a> fn(env : OpEnv<'a, T, S>, params : &Vec<usize>) -> Result<(), Box<dyn std::error::Error>>,
 }
