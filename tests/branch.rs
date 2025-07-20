@@ -14,16 +14,16 @@ fn should_branch() {
     let set_branch: GenOp<u8, u8> = common::gen_set_branch();
     let unset_branch: GenOp<u8, u8> = common::gen_unset_branch();
 
-    let push_stack : GenOp<u8, u8> = GenOp {
+    let push_stack : GenOp<u8, u8> = GenOp::Local {
         name : "push".into(),
-        op: |env, ps | { 
+        op: |locals, ps | { 
             if ps[0] == 0 {
-                env.locals.push(0);
+                locals.push(0);
             }
             if ps[0] == 1 {
-                env.locals.push(1);
+                locals.push(1);
             }
-            Ok(())
+            Ok(None)
         },
     };
 
