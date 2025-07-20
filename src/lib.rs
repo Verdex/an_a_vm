@@ -42,13 +42,6 @@ impl<T : Clone, S> Vm<T, S> {
 
             match self.funs[self.current.fun_id].instrs[self.current.ip] {
                 Op::Gen(op_index, ref params) if op_index < self.ops.len() => {
-                    /*let env = OpEnv { 
-                        locals: &mut self.current.locals, 
-                        globals: &mut self.globals,
-                        ret: &mut self.current.ret, 
-                        branch: &mut self.current.branch, 
-                        dyn_call: &mut self.current.dyn_call,
-                    };*/
                     match &self.ops[op_index] {
                         GenOp::Vm { name, op } => {
                             let env = VmEnv { 
@@ -65,16 +58,38 @@ impl<T : Clone, S> Vm<T, S> {
                                     return Err(VmError::GenOpError(Rc::clone(name), e, self.stack_trace()));
                                 },
                             }
-
+                        },
+                        GenOp::Global { name, op } => {
+                            match op(&mut self.globals, params) {
+                                Ok(v) => { 
+                                    self.current.ret = v;
+                                },
+                                Err(e) => {
+                                    return Err(VmError::GenOpError(Rc::clone(name), e, self.stack_trace()));
+                                },
+                            }
+                        },
+                        GenOp::Local { name, op } => {
+                            match op(&mut self.current.locals, params) {
+                                Ok(v) => { 
+                                    self.current.ret = v;
+                                },
+                                Err(e) => {
+                                    return Err(VmError::GenOpError(Rc::clone(name), e, self.stack_trace()));
+                                },
+                            }
+                        },
+                        GenOp::Frame { name, op } => {
+                            match op(&mut self.current, params) {
+                                Ok(v) => { 
+                                    self.current.ret = v;
+                                },
+                                Err(e) => {
+                                    return Err(VmError::GenOpError(Rc::clone(name), e, self.stack_trace()));
+                                },
+                            }
                         },
                     }
-                    /*match (self.ops[op_index].op)(env, params) {
-                        Ok(()) => { },
-                        Err(e) => { 
-                            let name = self.ops[op_index].name.clone();
-                            return Err(VmError::GenOpError(name, e, self.stack_trace())); 
-                        }
-                    }*/
                     self.current.ip += 1;
                 },
                 Op::Gen(op_index, _) => {

@@ -35,15 +35,6 @@ pub struct Fun<T> {
     pub instrs : Vec<Op<T>>,
 }
 
-// TODO see if this can be replaced with Frame which will need to be moved to data
-pub struct OpEnv<'a, T, S> {
-    pub locals : &'a mut Vec<T>,
-    pub globals : &'a mut Vec<S>,
-    pub ret : &'a mut Option<T>,
-    pub branch : &'a mut bool,
-    pub dyn_call : &'a mut Option<usize>,
-}
-
 pub struct VmEnv<'a, T, S> {
     pub globals: &'a mut Vec<S>,
     pub frames : &'a mut Vec<Frame<T>>,
@@ -51,12 +42,10 @@ pub struct VmEnv<'a, T, S> {
 }
 
 pub enum GenOp<T, S> {
-    Vm { name : Rc<str>, op : for<'a> fn(vm : VmEnv<'a, T, S>, params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> }
-    /*pub name : Box<str>,
-    // TODO maybe &vec<_> => &[]
-    // TODO Global op, Local op, Frame op, Vm op
-    pub op : for<'a> fn(env : OpEnv<'a, T, S>, params : &Vec<usize>) -> Result<(), Box<dyn std::error::Error>>,
-    */
+    Vm { name : Rc<str>, op : for<'a> fn(vm : VmEnv<'a, T, S>, params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> },
+    Global { name : Rc<str>, op : fn(globals : &mut Vec<S>, params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> },
+    Local { name : Rc<str>, op : fn(locals : &mut Vec<T>, params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> },
+    Frame { name : Rc<str>, op : fn(frame : &mut Frame<T>, params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> },
 }
 
 #[derive(Clone)]
