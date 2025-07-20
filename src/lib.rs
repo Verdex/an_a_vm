@@ -34,16 +34,6 @@ enum Coroutine<T> {
     Finished,
 }
 
-// TODO function
-impl<T> Coroutine<T> {
-    pub fn is_running(&self) -> bool {
-        match self { 
-            Coroutine::Running => true,
-            _ => false,
-        }
-    }
-}
-
 impl<T : Clone, S> Vm<T, S> {
     pub fn new(funs : Vec<Fun<T>>, ops : Vec<GenOp<T, S>>) -> Self {
         let current = Frame { fun_id: 0, ip: 0, ret: None, branch: false, dyn_call: None, locals: vec![], coroutines: vec![] };
@@ -179,7 +169,7 @@ impl<T : Clone, S> Vm<T, S> {
                             self.current.ip += 1;
                             let coroutine = std::mem::replace(&mut self.current, frame);
                             self.current.ret = Some(ret_target);
-                            match self.current.coroutines.iter().position(|x| x.is_running()) {
+                            match self.current.coroutines.iter().position(co_is_running) {
                                 Some(index) => {
                                     let _ = std::mem::replace(&mut self.current.coroutines[index], Coroutine::Active(coroutine));
                                 },
@@ -200,7 +190,7 @@ impl<T : Clone, S> Vm<T, S> {
                             self.current = frame;
                             self.current.ret = None;
 
-                            match self.current.coroutines.iter().position(|x| x.is_running()) {
+                            match self.current.coroutines.iter().position(co_is_running) {
                                 Some(index) => {
                                     let _ = std::mem::replace(&mut self.current.coroutines[index], Coroutine::Finished);
                                 },
@@ -336,5 +326,13 @@ fn get_local<T : Clone>(index: usize, locals : Cow<Vec<T>>) -> Result<T, Box<dyn
             Cow::Borrowed(locals) => Ok(locals[index].clone()),
             Cow::Owned(mut locals) => Ok(locals.swap_remove(index)),
         }
+    }
+}
+
+
+fn co_is_running<T>(coroutine : &Coroutine<T>) -> bool {
+    match coroutine { 
+        Coroutine::Running => true,
+        _ => false,
     }
 }
