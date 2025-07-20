@@ -7,31 +7,12 @@ use crate::data::*;
 
 use std::borrow::Cow;
 
-
 pub struct Vm<T, S> {
     funs : Vec<Fun<T>>,
     ops : Vec<GenOp<T, S>>,
-    globals: Vec<S>,
-    frames : Vec<Frame<T>>,
-    current : Frame<T>,
-}
-
-#[derive(Clone)]
-struct Frame<T> {
-    fun_id : usize,
-    ip : usize,
-    ret : Option<T>,
-    branch : bool,
-    dyn_call : Option<usize>,
-    locals : Vec<T>,
-    coroutines : Vec<Coroutine<T>>,
-}
-
-#[derive(Clone)]
-enum Coroutine<T> {
-    Active(Frame<T>),
-    Running,
-    Finished,
+    pub globals: Vec<S>,
+    pub frames : Vec<Frame<T>>,
+    pub current : Frame<T>,
 }
 
 impl<T : Clone, S> Vm<T, S> {

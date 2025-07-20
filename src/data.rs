@@ -48,3 +48,21 @@ pub struct GenOp<T, S> {
     // TODO Global op, Local op, Frame op, Vm op
     pub op : for<'a> fn(env : OpEnv<'a, T, S>, params : &Vec<usize>) -> Result<(), Box<dyn std::error::Error>>,
 }
+
+#[derive(Clone)]
+pub struct Frame<T> {
+    pub (crate) fun_id : usize,
+    pub (crate) ip : usize,
+    pub (crate) ret : Option<T>,
+    pub branch : bool,
+    pub dyn_call : Option<usize>,
+    pub locals : Vec<T>,
+    pub coroutines : Vec<Coroutine<T>>,
+}
+
+#[derive(Clone)]
+pub enum Coroutine<T> {
+    Active(Frame<T>),
+    Running,
+    Finished,
+}
