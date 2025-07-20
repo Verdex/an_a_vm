@@ -1,6 +1,4 @@
 
-// TODO Types instead of usize will be a bit more clear, but ultimately annoying to enter in.  Decide which way makes sense.
-
 
 // TODO Rc instead of Box (for names)
 // TODO Rc instead of Vec?  (surely not in all instances)
@@ -23,6 +21,7 @@ pub enum Op<T> {
     CoFinish,
     CoResume(usize),
     // TODO now with CoDrop this op doesn't need to delete the coroutine
+    // TODO potentially this op doesn't need to exist
     CoFinishSetBranch(usize),
     CoDrop(usize),
     CoDup(usize), 
