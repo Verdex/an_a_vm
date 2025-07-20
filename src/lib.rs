@@ -34,6 +34,7 @@ enum Coroutine<T> {
     Finished,
 }
 
+// TODO function
 impl<T> Coroutine<T> {
     pub fn is_running(&self) -> bool {
         match self { 

@@ -1,7 +1,6 @@
 
 // TODO Types instead of usize will be a bit more clear, but ultimately annoying to enter in.  Decide which way makes sense.
 
-// TODO With CoSwap there's no reason to be moving around Coroutines after they return
 
 // TODO Rc instead of Box (for names)
 // TODO Rc instead of Vec?  (surely not in all instances)
