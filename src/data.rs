@@ -22,9 +22,6 @@ pub enum Op<T> {
     CoYield(usize),
     CoFinish,
     CoResume(usize),
-    // TODO now with CoDrop this op doesn't need to delete the coroutine
-    // TODO potentially this op doesn't need to exist
-    CoFinishSetBranch(usize),
     CoDrop(usize),
     CoDup(usize), 
     CoSwap(usize, usize),
@@ -64,4 +61,13 @@ pub enum Coroutine<T> {
     Active(Frame<T>),
     Running,
     Finished,
+}
+
+impl<T> Coroutine<T> {
+    pub fn is_alive(&self) -> bool {
+        match self { 
+            Coroutine::Active(_) | Coroutine::Running => true,
+            _ => false,
+        }
+    }
 }
