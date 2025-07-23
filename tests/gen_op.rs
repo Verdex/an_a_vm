@@ -243,3 +243,114 @@ fn should_return_from_local() {
 
     assert_eq!(data, 3);
 }
+
+// frame
+#[test]
+fn should_not_return_from_frame() {
+    let op = GenOp::Frame {
+        name: "op".into(),
+        op: | _frame, _params |  { 
+            Ok(None)
+        },
+    };
+
+    let main = Fun {
+        name: "main".into(),
+        instrs: vec![
+            Op::Gen(0, vec![]),
+            Op::PushRet,
+            Op::ReturnLocal(0),
+        ],
+    };
+
+    let mut vm : Vm<usize, usize> = Vm::new( 
+        vec![main],
+        vec![op]);
+
+    let error = vm.run(0);
+
+    assert!(matches!(error, Err(VmError::AccessMissingReturn(_))));
+}
+
+#[test]
+fn should_return_from_frame() {
+    let op = GenOp::Frame {
+        name: "op".into(),
+        op: | _frame, _params |  { 
+            Ok(Some(3))
+        },
+    };
+
+    let main = Fun {
+        name: "main".into(),
+        instrs: vec![
+            Op::Gen(0, vec![]),
+            Op::PushRet,
+            Op::ReturnLocal(0),
+        ],
+    };
+
+    let mut vm : Vm<usize, usize> = Vm::new( 
+        vec![main],
+        vec![op]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 3);
+}
+
+// VM
+
+#[test]
+fn should_not_return_from_vm() {
+    let op = GenOp::Vm {
+        name: "op".into(),
+        op: | _frame, _params |  { 
+            Ok(None)
+        },
+    };
+
+    let main = Fun {
+        name: "main".into(),
+        instrs: vec![
+            Op::Gen(0, vec![]),
+            Op::PushRet,
+            Op::ReturnLocal(0),
+        ],
+    };
+
+    let mut vm : Vm<usize, usize> = Vm::new( 
+        vec![main],
+        vec![op]);
+
+    let error = vm.run(0);
+
+    assert!(matches!(error, Err(VmError::AccessMissingReturn(_))));
+}
+
+#[test]
+fn should_return_from_vm() {
+    let op = GenOp::Vm{
+        name: "op".into(),
+        op: | _frame, _params |  { 
+            Ok(Some(3))
+        },
+    };
+
+    let main = Fun {
+        name: "main".into(),
+        instrs: vec![
+            Op::Gen(0, vec![]),
+            Op::PushRet,
+            Op::ReturnLocal(0),
+        ],
+    };
+
+    let mut vm : Vm<usize, usize> = Vm::new( 
+        vec![main],
+        vec![op]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 3);
+}
