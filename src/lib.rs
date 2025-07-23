@@ -345,7 +345,6 @@ fn get_local<T : Clone>(index: usize, locals : Cow<Vec<T>>) -> Result<T, Box<dyn
     }
 }
 
-
 fn co_is_running<T>(coroutine : &Coroutine<T>) -> bool {
     match coroutine { 
         Coroutine::Running => true,
