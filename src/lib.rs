@@ -6,7 +6,7 @@ use crate::error::*;
 use crate::data::*;
 
 use std::borrow::Cow;
-
+use std::rc::Rc;
 
 pub struct Vm<T, S> {
     funs : Vec<Fun<T>>,
@@ -14,34 +14,6 @@ pub struct Vm<T, S> {
     globals: Vec<S>,
     frames : Vec<Frame<T>>,
     current : Frame<T>,
-}
-
-#[derive(Clone)]
-struct Frame<T> {
-    fun_id : usize,
-    ip : usize,
-    ret : Option<T>,
-    branch : bool,
-    dyn_call : Option<usize>,
-    locals : Vec<T>,
-    coroutines : Vec<Coroutine<T>>,
-}
-
-#[derive(Clone)]
-enum Coroutine<T> {
-    Active(Frame<T>),
-    Running,
-    Finished,
-}
-
-// TODO function
-impl<T> Coroutine<T> {
-    pub fn is_running(&self) -> bool {
-        match self { 
-            Coroutine::Running => true,
-            _ => false,
-        }
-    }
 }
 
 impl<T : Clone, S> Vm<T, S> {
@@ -70,19 +42,53 @@ impl<T : Clone, S> Vm<T, S> {
 
             match self.funs[self.current.fun_id].instrs[self.current.ip] {
                 Op::Gen(op_index, ref params) if op_index < self.ops.len() => {
-                    let env = OpEnv { 
-                        locals: &mut self.current.locals, 
-                        globals: &mut self.globals,
-                        ret: &mut self.current.ret, 
-                        branch: &mut self.current.branch, 
-                        dyn_call: &mut self.current.dyn_call,
-                    };
-                    match (self.ops[op_index].op)(env, params) {
-                        Ok(()) => { },
-                        Err(e) => { 
-                            let name = self.ops[op_index].name.clone();
-                            return Err(VmError::GenOpError(name, e, self.stack_trace())); 
-                        }
+                    match &self.ops[op_index] {
+                        GenOp::Vm { name, op } => {
+                            let env = VmEnv { 
+                                globals: &mut self.globals,
+                                frames: &mut self.frames, 
+                                current: &mut self.current,
+                            };
+
+                            match op(env, params) {
+                                Ok(v) => { 
+                                    self.current.ret = v;
+                                },
+                                Err(e) => {
+                                    return Err(VmError::GenOpError(Rc::clone(name), e, self.stack_trace()));
+                                },
+                            }
+                        },
+                        GenOp::Global { name, op } => {
+                            match op(&mut self.globals, params) {
+                                Ok(v) => { 
+                                    self.current.ret = v;
+                                },
+                                Err(e) => {
+                                    return Err(VmError::GenOpError(Rc::clone(name), e, self.stack_trace()));
+                                },
+                            }
+                        },
+                        GenOp::Local { name, op } => {
+                            match op(&mut self.current.locals, params) {
+                                Ok(v) => { 
+                                    self.current.ret = v;
+                                },
+                                Err(e) => {
+                                    return Err(VmError::GenOpError(Rc::clone(name), e, self.stack_trace()));
+                                },
+                            }
+                        },
+                        GenOp::Frame { name, op } => {
+                            match op(&mut self.current, params) {
+                                Ok(v) => { 
+                                    self.current.ret = v;
+                                },
+                                Err(e) => {
+                                    return Err(VmError::GenOpError(Rc::clone(name), e, self.stack_trace()));
+                                },
+                            }
+                        },
                     }
                     self.current.ip += 1;
                 },
@@ -179,7 +185,7 @@ impl<T : Clone, S> Vm<T, S> {
                             self.current.ip += 1;
                             let coroutine = std::mem::replace(&mut self.current, frame);
                             self.current.ret = Some(ret_target);
-                            match self.current.coroutines.iter().position(|x| x.is_running()) {
+                            match self.current.coroutines.iter().position(co_is_running) {
                                 Some(index) => {
                                     let _ = std::mem::replace(&mut self.current.coroutines[index], Coroutine::Active(coroutine));
                                 },
@@ -200,7 +206,7 @@ impl<T : Clone, S> Vm<T, S> {
                             self.current = frame;
                             self.current.ret = None;
 
-                            match self.current.coroutines.iter().position(|x| x.is_running()) {
+                            match self.current.coroutines.iter().position(co_is_running) {
                                 Some(index) => {
                                     let _ = std::mem::replace(&mut self.current.coroutines[index], Coroutine::Finished);
                                 },
@@ -336,5 +342,12 @@ fn get_local<T : Clone>(index: usize, locals : Cow<Vec<T>>) -> Result<T, Box<dyn
             Cow::Borrowed(locals) => Ok(locals[index].clone()),
             Cow::Owned(mut locals) => Ok(locals.swap_remove(index)),
         }
+    }
+}
+
+fn co_is_running<T>(coroutine : &Coroutine<T>) -> bool {
+    match coroutine { 
+        Coroutine::Running => true,
+        _ => false,
     }
 }

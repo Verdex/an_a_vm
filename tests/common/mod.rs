@@ -2,149 +2,157 @@
 use an_a_vm::data::*;
 
 pub fn gen_set_branch<T, S>() -> GenOp<T, S> {
-    GenOp {
+    GenOp::Frame {
         name: "set".into(),
-        op: |env, _| { *env.branch = true; Ok(()) },
+        op: |frame, _| { frame.branch = true; Ok(None) },
     }
 }
 
 pub fn gen_unset_branch<T, S>() -> GenOp<T, S> {
-    GenOp {
+    GenOp::Frame {
         name: "unset".into(),
-        op: |env, _| { *env.branch = false; Ok(()) },
+        op: |frame, _| { frame.branch = false; Ok(None) },
     }
 }
 
 pub fn gen_set_branch_on_zero<S>() -> GenOp<u8, S> {
-    GenOp {
+    GenOp::Frame {
         name: "bz".into(),
-        op: |env, params| { 
+        op: |frame, params| { 
             if let [s] = &params[..] {
-                let v = env.locals[*s];
-                *env.branch = v == 0;
+                let v = frame.locals[*s];
+                frame.branch = v == 0;
             }
-            Ok(()) 
+            Ok(None) 
         },
     }
 }
 
 pub fn gen_push_global<T : Copy>() -> GenOp<T, T> {
-    GenOp {
+    GenOp::Vm {
         name: "push global".into(),
         op: |env, params| { 
             if let [s] = &params[..] {
                 let v = env.globals[*s];
-                env.locals.push(v);
+                env.current.locals.push(v);
             }
-            Ok(())
+            Ok(None)
         },
     }
 }
 
 pub fn gen_push_into_global<T : Copy>() -> GenOp<T, T> {
-    GenOp {
+    GenOp::Vm {
         name: "push into global".into(),
         op: |env, params| { 
             if let [s] = &params[..] {
-                let v = env.locals[*s];
+                let v = env.current.locals[*s];
                 env.globals.push(v);
             }
-            Ok(())
+            Ok(None)
         },
     }
 }
 
 pub fn gen_inc<S>() -> GenOp<u8, S> {
-    GenOp {
+    GenOp::Local {
         name: "inc".into(),
-        op: | env, params |  { 
+        op: | locals, params |  { 
             if let [s] = &params[..] {
-                let a = &env.locals[*s];
-                *env.ret = Some(a + 1);
+                let a = &locals[*s];
+                Ok(Some(a + 1))
             }
-            Ok(())
+            else {
+                Ok(None)
+            }
         },
     }
 }
 
 pub fn gen_dec<S>() -> GenOp<u8, S> {
-    GenOp {
+    GenOp::Local {
         name: "dec".into(),
-        op: | env, params |  { 
+        op: | locals, params |  { 
             if let [s] = &params[..] {
-                let a = &env.locals[*s];
-                *env.ret = Some(a - 1);
+                let a = &locals[*s];
+                Ok(Some(a - 1))
             }
-            Ok(())
+            else {
+                Ok(None)
+            }
         },
     }
 }
 
 pub fn gen_mul<T : std::ops::Mul<Output = T> + Copy, S>() -> GenOp<T, S> {
-    GenOp {
+    GenOp::Local {
         name: "mul".into(),
-        op: | env, params |  { 
+        op: | locals, params |  { 
             if let [s1, s2] = &params[..] {
-                let a = &env.locals[*s1];
-                let b = &env.locals[*s2];
-                *env.ret = Some(*a * *b);
+                let a = &locals[*s1];
+                let b = &locals[*s2];
+                Ok(Some(*a * *b))
             }
-            Ok(())
+            else {
+                Ok(None)
+            }
         },
     }
 }
 
 pub fn gen_add<T : std::ops::Add<Output = T> + Copy, S>() -> GenOp<T, S> {
-    GenOp {
+    GenOp::Local {
         name: "add".into(),
-        op: | env, params |  { 
+        op: | locals, params |  { 
             if let [s1, s2] = &params[..] {
-                let a = &env.locals[*s1];
-                let b = &env.locals[*s2];
-                *env.ret = Some(*a + *b);
+                let a = &locals[*s1];
+                let b = &locals[*s2];
+                Ok(Some(*a + *b))
             }
-            Ok(())
+            else {
+                Ok(None)
+            }
         },
     }
 }
 
 pub fn gen_unset_branch_on_equal<T : PartialEq, S>() -> GenOp<T, S> {
-    GenOp {
+    GenOp::Frame {
         name: "set branch on equal".into(),
-        op: | env, params |  { 
+        op: | frame, params |  { 
             if let [s1, s2] = &params[..] {
-                let a = &env.locals[*s1];
-                let b = &env.locals[*s2];
-                *env.branch = *a != *b;
+                let a = &frame.locals[*s1];
+                let b = &frame.locals[*s2];
+                frame.branch = *a != *b;
             }
-            Ok(())
+            Ok(None)
         },
     }
 }
 
 pub fn gen_set_branch_on_equal<T : PartialEq, S>() -> GenOp<T, S> {
-    GenOp {
+    GenOp::Frame {
         name: "set branch on equal".into(),
-        op: | env, params |  { 
+        op: | frame, params |  { 
             if let [s1, s2] = &params[..] {
-                let a = &env.locals[*s1];
-                let b = &env.locals[*s2];
-                *env.branch = *a == *b;
+                let a = &frame.locals[*s1];
+                let b = &frame.locals[*s2];
+                frame.branch = *a == *b;
             }
-            Ok(())
+            Ok(None)
         },
     }
 }
 
 pub fn gen_set_dyn_call<S>() -> GenOp<usize, S> {
-    GenOp {
+    GenOp::Frame {
         name: "set dyn call".into(),
-        op: |env, params| {
+        op: |frame, params| {
             if let [s] = &params[..] {
-                let v = &env.locals[*s];
-                *env.dyn_call = Some(*v);
+                let v = &frame.locals[*s];
+                frame.dyn_call = Some(*v);
             }
-            Ok(())
+            Ok(None)
         },
     }
 }

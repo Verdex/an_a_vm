@@ -14,19 +14,19 @@ fn should_dynamic_call() {
     let add = common::gen_add();
     let push_from_global = common::gen_push_global();
 
-    let set_dyn_call_two = GenOp { 
+    let set_dyn_call_two = GenOp::Frame { 
         name: "set two".into(),
-        op: | env, _ | {
-            *env.dyn_call = Some(2);
-            Ok(())
+        op: | frame, _ | {
+            frame.dyn_call = Some(2);
+            Ok(None)
         },
     };
 
-    let set_dyn_call_one = GenOp { 
+    let set_dyn_call_one = GenOp::Frame { 
         name: "set one".into(),
-        op: | env, _ | {
-            *env.dyn_call = Some(1);
-            Ok(())
+        op: | frame, _ | {
+            frame.dyn_call = Some(1);
+            Ok(None)
         },
     };
 
@@ -292,11 +292,11 @@ fn should_call_with_params() {
 #[test]
 fn should_call_and_return() {
 
-    let push : GenOp<u8, u8> = GenOp {
+    let push : GenOp<u8, u8> = GenOp::Local {
         name : "push".into(),
-        op: |env, _ | { 
-            env.locals.push(9);
-            Ok(())
+        op: |locals, _ | { 
+            locals.push(9);
+            Ok(None)
         },
     };
 
