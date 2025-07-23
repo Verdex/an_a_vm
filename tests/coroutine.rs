@@ -506,4 +506,36 @@ fn should_handle_coroutine_with_interleaved_coroutines() {
     assert_eq!(data, 126);
 }
 
+#[test]
+fn should_handle_coroutine_with_immediate_finish() {
+    let set_branch_on_finish = common::gen_set_branch_on_finish();
+
+    let co = Fun {
+        name: "co".into(),
+        instrs: vec![
+            Op::CoFinish,
+        ],
+    };
+
+    let main = Fun {
+        name: "main".into(),
+        instrs: vec![
+            Op::Call(1, vec![]),
+            Op::Gen(0, vec![0]),
+            Op::Branch(4),
+            Op::PushLocal(1),
+            Op::PushLocal(3),
+            Op::ReturnLocal(0),
+        ]
+    };
+
+    let mut vm : Vm<usize, usize> = Vm::new( 
+        vec![main, co],
+        vec![set_branch_on_finish]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 3);
+}
+
 // TODO Add tests for coswap, codup, and codrop

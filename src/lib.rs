@@ -211,8 +211,6 @@ impl<T : Clone, S> Vm<T, S> {
                                     let _ = std::mem::replace(&mut self.current.coroutines[index], Coroutine::Finished);
                                 },
                                 None => { 
-                                    // TODO this represents a coroutine that has no yields and should have 
-                                    // a test to go along with it
                                     self.current.coroutines.push(Coroutine::Finished);
                                 },
                             }
