@@ -244,7 +244,6 @@ fn should_return_from_local() {
     assert_eq!(data, 3);
 }
 
-// frame
 #[test]
 fn should_not_return_from_frame() {
     let op = GenOp::Frame {
@@ -298,8 +297,6 @@ fn should_return_from_frame() {
 
     assert_eq!(data, 3);
 }
-
-// VM
 
 #[test]
 fn should_not_return_from_vm() {
