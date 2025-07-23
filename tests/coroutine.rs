@@ -186,6 +186,7 @@ fn should_handle_dyn_call_params() {
 #[test]
 fn should_preserve_active_coroutine_for_finish_set_branch() {
     let push_from_global = common::gen_push_global();
+    let set_branch_on_finish = common::gen_set_branch_on_finish();
 
     let co = Fun {
         name: "co".into(),
@@ -201,7 +202,7 @@ fn should_preserve_active_coroutine_for_finish_set_branch() {
         name: "main".into(),
         instrs: vec![
             Op::Call(1, vec![]),
-            Op::CoFinishSetBranch(0),
+            Op::Gen(1, vec![0]),
             Op::Branch(6),
             Op::CoResume(0),
             Op::Gen(0, vec![1]),
@@ -213,7 +214,7 @@ fn should_preserve_active_coroutine_for_finish_set_branch() {
 
     let mut vm : Vm<usize, usize> = Vm::new( 
         vec![main, co],
-        vec![push_from_global]);
+        vec![push_from_global, set_branch_on_finish]);
 
     vm.with_globals(vec![1, 2]);
 
@@ -226,6 +227,7 @@ fn should_preserve_active_coroutine_for_finish_set_branch() {
 fn should_remove_finished_coroutine_for_finish_set_branch() {
     let push_from_global = common::gen_push_global();
     let add = common::gen_add();
+    let set_branch_on_finish = common::gen_set_branch_on_finish();
 
     let co = Fun {
         name: "co".into(),
@@ -251,8 +253,10 @@ fn should_remove_finished_coroutine_for_finish_set_branch() {
             Op::CoResume(1),
             Op::CoResume(1),
             Op::CoResume(1),
-            Op::CoFinishSetBranch(0),
-            Op::CoFinishSetBranch(0),
+            Op::Gen(2, vec![0]),
+            Op::CoDrop(0),
+            Op::Gen(2, vec![0]),
+            Op::CoDrop(0),
             Op::CoResume(0),
             Op::PushRet, // 1 on stack
             Op::CoResume(0),
@@ -267,7 +271,7 @@ fn should_remove_finished_coroutine_for_finish_set_branch() {
 
     let mut vm : Vm<usize, usize> = Vm::new( 
         vec![main, co],
-        vec![push_from_global, add]);
+        vec![push_from_global, add, set_branch_on_finish]);
 
     vm.with_globals(vec![1, 2]);
 

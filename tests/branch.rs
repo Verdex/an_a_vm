@@ -4,7 +4,6 @@ pub mod common;
 use an_a_vm::*;
 use an_a_vm::data::*;
 
-
 #[test]
 fn should_branch() {
     const S : usize = 0;
@@ -106,6 +105,7 @@ fn should_loop() {
 #[test]
 fn should_not_branch_on_active_coroutine() {
     let push_from_global = common::gen_push_global();
+    let set_branch_on_finish = common::gen_set_branch_on_finish();
 
     let co = Fun {
         name: "co".into(),
@@ -120,7 +120,7 @@ fn should_not_branch_on_active_coroutine() {
         name: "main".into(),
         instrs: vec![
             Op::Call(1, vec![]),
-            Op::CoFinishSetBranch(0),
+            Op::Gen(1, vec![0]),
             Op::Branch(4),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
@@ -130,7 +130,7 @@ fn should_not_branch_on_active_coroutine() {
 
     let mut vm : Vm<u8, u8> = Vm::new(
         vec![main, co], 
-        vec![push_from_global]);
+        vec![push_from_global, set_branch_on_finish]);
 
     vm.with_globals(vec![1, 3, 5]);
 
@@ -142,6 +142,7 @@ fn should_not_branch_on_active_coroutine() {
 #[test]
 fn should_branch_on_finished_coroutine() {
     let push_from_global = common::gen_push_global();
+    let set_branch_on_finish = common::gen_set_branch_on_finish();
 
     let co = Fun {
         name: "co".into(),
@@ -154,7 +155,7 @@ fn should_branch_on_finished_coroutine() {
         name: "main".into(),
         instrs: vec![
             Op::Call(1, vec![]),
-            Op::CoFinishSetBranch(0),
+            Op::Gen(1, vec![0]),
             Op::Branch(4),
             Op::Gen(0, vec![0]),
             Op::Gen(0, vec![1]),
@@ -164,7 +165,7 @@ fn should_branch_on_finished_coroutine() {
 
     let mut vm : Vm<u8, u8> = Vm::new(
         vec![main, co], 
-        vec![push_from_global]);
+        vec![push_from_global, set_branch_on_finish]);
 
     vm.with_globals(vec![1, 3]);
 
@@ -176,6 +177,7 @@ fn should_branch_on_finished_coroutine() {
 #[test]
 fn should_branch_on_finished_coroutine_with_active_coroutine_present() {
     let push_from_global = common::gen_push_global();
+    let set_branch_on_finish = common::gen_set_branch_on_finish();
 
     let co = Fun {
         name: "co".into(),
@@ -192,7 +194,7 @@ fn should_branch_on_finished_coroutine_with_active_coroutine_present() {
             Op::Call(1, vec![]),
             Op::Call(1, vec![]),
             Op::CoResume(1),
-            Op::CoFinishSetBranch(1),
+            Op::Gen(1, vec![1]),
             Op::Branch(6),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
@@ -202,7 +204,7 @@ fn should_branch_on_finished_coroutine_with_active_coroutine_present() {
 
     let mut vm : Vm<u8, u8> = Vm::new(
         vec![main, co], 
-        vec![push_from_global]);
+        vec![push_from_global, set_branch_on_finish]);
 
     vm.with_globals(vec![1, 3, 5]);
 
@@ -214,6 +216,7 @@ fn should_branch_on_finished_coroutine_with_active_coroutine_present() {
 #[test]
 fn should_branch_on_finished_coroutine_in_function_where_parent_has_active_coroutine() {
     let push_from_global = common::gen_push_global();
+    let set_branch_on_finish = common::gen_set_branch_on_finish();
 
     let co = Fun {
         name: "co".into(),
@@ -229,7 +232,7 @@ fn should_branch_on_finished_coroutine_in_function_where_parent_has_active_corou
         instrs: vec![
             Op::Call(2, vec![]),
             Op::CoResume(0),
-            Op::CoFinishSetBranch(0),
+            Op::Gen(1, vec![0]),
             Op::Branch(5),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
@@ -249,7 +252,7 @@ fn should_branch_on_finished_coroutine_in_function_where_parent_has_active_corou
 
     let mut vm : Vm<u8, u8> = Vm::new(
         vec![main, child, co], 
-        vec![push_from_global]);
+        vec![push_from_global, set_branch_on_finish]);
 
     vm.with_globals(vec![1, 3, 5]);
 
@@ -262,6 +265,7 @@ fn should_branch_on_finished_coroutine_in_function_where_parent_has_active_corou
 fn should_branch_on_finished_coroutine_in_dyn_function_where_parent_has_active_coroutine() {
     let push_from_global = common::gen_push_global();
     let set_dyn_call = common::gen_set_dyn_call();
+    let set_branch_on_finish = common::gen_set_branch_on_finish();
 
     let co = Fun {
         name: "co".into(),
@@ -277,7 +281,7 @@ fn should_branch_on_finished_coroutine_in_dyn_function_where_parent_has_active_c
         instrs: vec![
             Op::Call(2, vec![]),
             Op::CoResume(0),
-            Op::CoFinishSetBranch(0),
+            Op::Gen(2, vec![0]),
             Op::Branch(5),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
@@ -300,7 +304,7 @@ fn should_branch_on_finished_coroutine_in_dyn_function_where_parent_has_active_c
 
     let mut vm : Vm<usize, usize> = Vm::new(
         vec![main, child, co], 
-        vec![push_from_global, set_dyn_call]);
+        vec![push_from_global, set_dyn_call, set_branch_on_finish]);
 
     vm.with_globals(vec![1, 3, 5]);
 
@@ -312,6 +316,7 @@ fn should_branch_on_finished_coroutine_in_dyn_function_where_parent_has_active_c
 #[test]
 fn should_branch_on_finished_coroutine_in_resumed_coroutine_where_parent_has_active_coroutine() {
     let push_from_global = common::gen_push_global();
+    let set_branch_on_finish = common::gen_set_branch_on_finish();
 
     let co = Fun {
         name: "co".into(),
@@ -329,7 +334,7 @@ fn should_branch_on_finished_coroutine_in_resumed_coroutine_where_parent_has_act
             Op::Gen(0, vec![0]),
             Op::CoYield(0),
             Op::CoResume(0),
-            Op::CoFinishSetBranch(0),
+            Op::Gen(1, vec![0]),
             Op::Branch(7),
             Op::Gen(0, vec![1]),
             Op::Gen(0, vec![2]),
@@ -351,7 +356,7 @@ fn should_branch_on_finished_coroutine_in_resumed_coroutine_where_parent_has_act
 
     let mut vm : Vm<usize, usize> = Vm::new(
         vec![main, child, co], 
-        vec![push_from_global]);
+        vec![push_from_global, set_branch_on_finish]);
 
     vm.with_globals(vec![1, 3, 5]);
 

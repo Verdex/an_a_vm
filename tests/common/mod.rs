@@ -156,3 +156,14 @@ pub fn gen_set_dyn_call<S>() -> GenOp<usize, S> {
         },
     }
 }
+
+pub fn gen_set_branch_on_finish<T, S>() -> GenOp<T, S> {
+    GenOp::Frame {
+        name: "set_branch_on_finish".into(),
+        op: |frame, params| {
+            frame.branch = !frame.coroutines[params[0]].is_alive();
+            println!("BLARG {}", frame.branch);
+            Ok(None)
+        }
+    }
+}
