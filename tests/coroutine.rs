@@ -538,4 +538,78 @@ fn should_handle_coroutine_with_immediate_finish() {
     assert_eq!(data, 3);
 }
 
-// TODO Add tests for coswap, codup, and codrop
+#[test]
+fn should_drop_coroutine() {
+
+    let co_count = GenOp::Frame {
+        name: "co_count".into(),
+        op: |frame, _| {
+            Ok(Some(frame.coroutines.len()))
+        },
+    };
+
+    let co = Fun {
+        name: "co".into(),
+        instrs: vec![
+            Op::CoFinish,
+        ],
+    };
+
+    let main = Fun {
+        name: "main".into(),
+        instrs: vec![
+            Op::Call(1, vec![]),
+            Op::CoDrop(0),
+            Op::Gen(0, vec![]),
+            Op::PushRet,
+            Op::ReturnLocal(0),
+        ],
+    };
+
+    let mut vm : Vm<usize, usize> = Vm::new( 
+        vec![main, co],
+        vec![co_count]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 0);
+}
+
+#[test]
+fn should_swap_coroutine() {
+    let co = Fun {
+        name: "co".into(),
+        instrs: vec![
+            Op::PushLocal(1),
+            Op::PushLocal(2),
+            Op::PushLocal(3),
+            Op::CoYield(0),
+            Op::CoYield(1),
+            Op::CoYield(2),
+            Op::CoFinish,
+        ],
+    };
+
+    let main = Fun {
+        name: "main".into(),
+        instrs: vec![
+            Op::Call(1, vec![]), // yields 1
+            Op::Call(1, vec![]), // yields 1
+            Op::CoResume(0), // yields 2
+            Op::CoSwap(0, 1),
+            Op::CoResume(0), // Should yield 2
+            Op::PushRet,
+            Op::ReturnLocal(0),
+        ],
+    };
+
+    let mut vm : Vm<usize, usize> = Vm::new( 
+        vec![main, co],
+        vec![]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 2);
+}
+
+// TODO Add tests for coswap, codup 
