@@ -1,8 +1,4 @@
 
-
-// TODO Rc instead of Box (for names)
-// TODO Rc instead of Vec?  (surely not in all instances)
-
 use std::rc::Rc;
 
 pub enum Op<T> {
@@ -26,7 +22,7 @@ pub enum Op<T> {
 }
 
 pub struct Fun<T> {
-    pub name : Box<str>,
+    pub name : Rc<str>,
     pub instrs : Vec<Op<T>>,
 }
 

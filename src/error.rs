@@ -1,7 +1,7 @@
 
 use std::rc::Rc;
 
-pub type StackTrace = Vec<(Box<str>, usize)>;
+pub type StackTrace = Vec<(Rc<str>, usize)>;
 
 #[derive(Debug)]
 pub enum VmError {

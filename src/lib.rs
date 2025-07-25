@@ -311,7 +311,7 @@ impl<T : Clone, S> Vm<T, S> {
             // Note:  if the function was already pushed into the stack, then
             // that means that it already resolved to a known function.  Don't
             // have to check again that the fun map has it.
-            let name = self.funs[addr.fun].name.clone();
+            let name = Rc::clone(&self.funs[addr.fun].name);
             trace.push((name, addr.instr - 1));
         }
         trace
