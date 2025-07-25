@@ -211,8 +211,6 @@ impl<T : Clone, S> Vm<T, S> {
                                     let _ = std::mem::replace(&mut self.current.coroutines[index], Coroutine::Finished);
                                 },
                                 None => { 
-                                    // TODO this represents a coroutine that has no yields and should have 
-                                    // a test to go along with it
                                     self.current.coroutines.push(Coroutine::Finished);
                                 },
                             }
@@ -233,19 +231,6 @@ impl<T : Clone, S> Vm<T, S> {
                     }
                 },
                 Op::CoResume(coroutine) => {
-                    return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
-                },
-                Op::CoFinishSetBranch(coroutine) if coroutine < self.current.coroutines.len() => {
-                    match self.current.coroutines[coroutine] {
-                        Coroutine::Finished => { 
-                            self.current.branch = true; 
-                            self.current.coroutines.remove(coroutine); // TODO
-                        },
-                        _ => { self.current.branch = false; },
-                    }
-                    self.current.ip += 1;
-                },
-                Op::CoFinishSetBranch(coroutine) => { 
                     return Err(VmError::AccessMissingCoroutine(coroutine, self.stack_trace()));
                 },
                 Op::CoDrop(coroutine) if coroutine < self.current.coroutines.len() => {

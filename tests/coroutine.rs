@@ -186,6 +186,7 @@ fn should_handle_dyn_call_params() {
 #[test]
 fn should_preserve_active_coroutine_for_finish_set_branch() {
     let push_from_global = common::gen_push_global();
+    let set_branch_on_finish = common::gen_set_branch_on_finish();
 
     let co = Fun {
         name: "co".into(),
@@ -201,7 +202,7 @@ fn should_preserve_active_coroutine_for_finish_set_branch() {
         name: "main".into(),
         instrs: vec![
             Op::Call(1, vec![]),
-            Op::CoFinishSetBranch(0),
+            Op::Gen(1, vec![0]),
             Op::Branch(6),
             Op::CoResume(0),
             Op::Gen(0, vec![1]),
@@ -213,7 +214,7 @@ fn should_preserve_active_coroutine_for_finish_set_branch() {
 
     let mut vm : Vm<usize, usize> = Vm::new( 
         vec![main, co],
-        vec![push_from_global]);
+        vec![push_from_global, set_branch_on_finish]);
 
     vm.with_globals(vec![1, 2]);
 
@@ -226,6 +227,7 @@ fn should_preserve_active_coroutine_for_finish_set_branch() {
 fn should_remove_finished_coroutine_for_finish_set_branch() {
     let push_from_global = common::gen_push_global();
     let add = common::gen_add();
+    let set_branch_on_finish = common::gen_set_branch_on_finish();
 
     let co = Fun {
         name: "co".into(),
@@ -251,8 +253,10 @@ fn should_remove_finished_coroutine_for_finish_set_branch() {
             Op::CoResume(1),
             Op::CoResume(1),
             Op::CoResume(1),
-            Op::CoFinishSetBranch(0),
-            Op::CoFinishSetBranch(0),
+            Op::Gen(2, vec![0]),
+            Op::CoDrop(0),
+            Op::Gen(2, vec![0]),
+            Op::CoDrop(0),
             Op::CoResume(0),
             Op::PushRet, // 1 on stack
             Op::CoResume(0),
@@ -267,7 +271,7 @@ fn should_remove_finished_coroutine_for_finish_set_branch() {
 
     let mut vm : Vm<usize, usize> = Vm::new( 
         vec![main, co],
-        vec![push_from_global, add]);
+        vec![push_from_global, add, set_branch_on_finish]);
 
     vm.with_globals(vec![1, 2]);
 
@@ -358,11 +362,6 @@ fn should_not_move_coroutine_position_on_resume_yield() {
 
     assert_eq!(data, 1);
 }
-
-// TODO add test of coroutine that has coroutines and the inner coroutines produce different values the 
-// more times they're iterated through
-
-// TODO a recursive coroutine ought to work correctly
 
 #[test]
 fn should_handle_coroutine_with_interleaved_coroutines() {
@@ -502,4 +501,150 @@ fn should_handle_coroutine_with_interleaved_coroutines() {
     assert_eq!(data, 126);
 }
 
-// TODO Add tests for coswap, codup, and codrop
+#[test]
+fn should_handle_coroutine_with_immediate_finish() {
+    let set_branch_on_finish = common::gen_set_branch_on_finish();
+
+    let co = Fun {
+        name: "co".into(),
+        instrs: vec![
+            Op::CoFinish,
+        ],
+    };
+
+    let main = Fun {
+        name: "main".into(),
+        instrs: vec![
+            Op::Call(1, vec![]),
+            Op::Gen(0, vec![0]),
+            Op::Branch(4),
+            Op::PushLocal(1),
+            Op::PushLocal(3),
+            Op::ReturnLocal(0),
+        ]
+    };
+
+    let mut vm : Vm<usize, usize> = Vm::new( 
+        vec![main, co],
+        vec![set_branch_on_finish]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 3);
+}
+
+#[test]
+fn should_drop_coroutine() {
+
+    let co_count = GenOp::Frame {
+        name: "co_count".into(),
+        op: |frame, _| {
+            Ok(Some(frame.coroutines.len()))
+        },
+    };
+
+    let co = Fun {
+        name: "co".into(),
+        instrs: vec![
+            Op::CoFinish,
+        ],
+    };
+
+    let main = Fun {
+        name: "main".into(),
+        instrs: vec![
+            Op::Call(1, vec![]),
+            Op::CoDrop(0),
+            Op::Gen(0, vec![]),
+            Op::PushRet,
+            Op::ReturnLocal(0),
+        ],
+    };
+
+    let mut vm : Vm<usize, usize> = Vm::new( 
+        vec![main, co],
+        vec![co_count]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 0);
+}
+
+#[test]
+fn should_swap_coroutine() {
+    let co = Fun {
+        name: "co".into(),
+        instrs: vec![
+            Op::PushLocal(1),
+            Op::PushLocal(2),
+            Op::PushLocal(3),
+            Op::CoYield(0),
+            Op::CoYield(1),
+            Op::CoYield(2),
+            Op::CoFinish,
+        ],
+    };
+
+    let main = Fun {
+        name: "main".into(),
+        instrs: vec![
+            Op::Call(1, vec![]), // yields 1
+            Op::Call(1, vec![]), // yields 1
+            Op::CoResume(0), // yields 2
+            Op::CoSwap(0, 1),
+            Op::CoResume(0), // Should yield 2
+            Op::PushRet,
+            Op::ReturnLocal(0),
+        ],
+    };
+
+    let mut vm : Vm<usize, usize> = Vm::new( 
+        vec![main, co],
+        vec![]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 2);
+}
+
+#[test]
+fn should_dup_coroutine() {
+    let add = common::gen_add();
+
+    let co = Fun {
+        name: "co".into(),
+        instrs: vec![
+            Op::PushLocal(1),
+            Op::PushLocal(2),
+            Op::PushLocal(3),
+            Op::CoYield(0),
+            Op::CoYield(1),
+            Op::CoYield(2),
+            Op::CoFinish,
+        ],
+    };
+
+    let main = Fun {
+        name: "main".into(),
+        instrs: vec![
+            Op::Call(1, vec![]), // yields 1
+            Op::CoResume(0), // yields 2
+            Op::CoDup(0),
+            Op::CoResume(0), // yields 3
+            Op::PushRet,
+            Op::CoResume(1), // yields 3
+            Op::PushRet,
+            Op::Gen(0, vec![0, 1]),
+            Op::PushRet,
+            Op::ReturnLocal(2),
+        ],
+    };
+
+    let mut vm : Vm<usize, usize> = Vm::new( 
+        vec![main, co],
+        vec![add]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 6);
+}
