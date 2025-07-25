@@ -3,8 +3,6 @@
 // TODO Rc instead of Box (for names)
 // TODO Rc instead of Vec?  (surely not in all instances)
 
-// TODO does frame allow lambda impl?
-
 use std::rc::Rc;
 
 pub enum Op<T> {
