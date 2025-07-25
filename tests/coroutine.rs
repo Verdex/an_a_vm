@@ -612,4 +612,44 @@ fn should_swap_coroutine() {
     assert_eq!(data, 2);
 }
 
-// TODO Add tests for coswap, codup 
+#[test]
+fn should_dup_coroutine() {
+    let add = common::gen_add();
+
+    let co = Fun {
+        name: "co".into(),
+        instrs: vec![
+            Op::PushLocal(1),
+            Op::PushLocal(2),
+            Op::PushLocal(3),
+            Op::CoYield(0),
+            Op::CoYield(1),
+            Op::CoYield(2),
+            Op::CoFinish,
+        ],
+    };
+
+    let main = Fun {
+        name: "main".into(),
+        instrs: vec![
+            Op::Call(1, vec![]), // yields 1
+            Op::CoResume(0), // yields 2
+            Op::CoDup(0),
+            Op::CoResume(0), // yields 3
+            Op::PushRet,
+            Op::CoResume(1), // yields 3
+            Op::PushRet,
+            Op::Gen(0, vec![0, 1]),
+            Op::PushRet,
+            Op::ReturnLocal(2),
+        ],
+    };
+
+    let mut vm : Vm<usize, usize> = Vm::new( 
+        vec![main, co],
+        vec![add]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert_eq!(data, 6);
+}
