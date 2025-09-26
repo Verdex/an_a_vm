@@ -40,6 +40,18 @@ pub enum GenOp<T, S> {
     Frame { name : Rc<str>, op : fn(frame : &mut Frame<T>, params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> },
 }
 
+impl<T, S> GenOp<T, S> {
+    pub fn name(&self) -> Rc<str> {
+        match self {
+            GenOp::Vm { name, .. } => Rc::clone(name), 
+            GenOp::DynGlobal { name, .. } => Rc::clone(name), 
+            GenOp::Global { name, .. } => Rc::clone(name), 
+            GenOp::Local { name, .. } => Rc::clone(name), 
+            GenOp::Frame { name, .. } => Rc::clone(name), 
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Frame<T> {
     pub (crate) fun_id : usize,
