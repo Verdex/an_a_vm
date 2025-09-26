@@ -59,6 +59,16 @@ impl<T : Clone, S> Vm<T, S> {
                                 },
                             }
                         },
+                        GenOp::DynGlobal { name, op } => {
+                            match op(&mut self.globals, &self.current.locals, params) {
+                                Ok(v) => {
+                                    self.current.ret = v;
+                                },
+                                Err(e) => {
+                                    return Err(VmError::GenOpError(Rc::clone(name), e, self.stack_trace()));
+                                }
+                            }
+                        },
                         GenOp::Global { name, op } => {
                             match op(&mut self.globals, params) {
                                 Ok(v) => { 
