@@ -34,6 +34,7 @@ pub struct VmEnv<'a, T, S> {
 
 pub enum GenOp<T, S> {
     Vm { name : Rc<str>, op : for<'a> fn(vm : VmEnv<'a, T, S>, params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> },
+    DynGlobal { name : Rc<str>, op : fn(globals : &mut Vec<S>, locals : &[T], params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> },
     Global { name : Rc<str>, op : fn(globals : &mut Vec<S>, params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> },
     Local { name : Rc<str>, op : fn(locals : &mut Vec<T>, params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> },
     Frame { name : Rc<str>, op : fn(frame : &mut Frame<T>, params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> },
