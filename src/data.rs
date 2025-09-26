@@ -78,3 +78,23 @@ impl<T> Coroutine<T> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn should_get_name() {
+        let vm : GenOp<(), ()> = GenOp::Vm { name: "vm".into(), op: |_, _| Ok(None) };
+        let dyn_global : GenOp<(), ()> = GenOp::Vm { name: "dyn_global".into(), op: |_, _| Ok(None) };
+        let global : GenOp<(), ()> = GenOp::Vm { name: "global".into(), op: |_, _| Ok(None) };
+        let local : GenOp<(), ()> = GenOp::Vm { name: "local".into(), op: |_, _| Ok(None) };
+        let frame : GenOp<(), ()> = GenOp::Vm { name: "frame".into(), op: |_, _| Ok(None) };
+
+        assert_eq!(vm.name(), "vm".into());
+        assert_eq!(dyn_global.name(), "dyn_global".into());
+        assert_eq!(global.name(), "global".into());
+        assert_eq!(local.name(), "local".into());
+        assert_eq!(frame.name(), "frame".into());
+    }
+}
