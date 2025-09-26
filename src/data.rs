@@ -34,9 +34,22 @@ pub struct VmEnv<'a, T, S> {
 
 pub enum GenOp<T, S> {
     Vm { name : Rc<str>, op : for<'a> fn(vm : VmEnv<'a, T, S>, params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> },
+    DynGlobal { name : Rc<str>, op : fn(globals : &mut Vec<S>, locals : &[T], params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> },
     Global { name : Rc<str>, op : fn(globals : &mut Vec<S>, params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> },
     Local { name : Rc<str>, op : fn(locals : &mut Vec<T>, params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> },
     Frame { name : Rc<str>, op : fn(frame : &mut Frame<T>, params : &[usize]) -> Result<Option<T>, Box<dyn std::error::Error>> },
+}
+
+impl<T, S> GenOp<T, S> {
+    pub fn name(&self) -> Rc<str> {
+        match self {
+            GenOp::Vm { name, .. } => Rc::clone(name), 
+            GenOp::DynGlobal { name, .. } => Rc::clone(name), 
+            GenOp::Global { name, .. } => Rc::clone(name), 
+            GenOp::Local { name, .. } => Rc::clone(name), 
+            GenOp::Frame { name, .. } => Rc::clone(name), 
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -63,5 +76,25 @@ impl<T> Coroutine<T> {
             Coroutine::Active(_) | Coroutine::Running => true,
             _ => false,
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn should_get_name() {
+        let vm : GenOp<(), ()> = GenOp::Vm { name: "vm".into(), op: |_, _| Ok(None) };
+        let dyn_global : GenOp<(), ()> = GenOp::Vm { name: "dyn_global".into(), op: |_, _| Ok(None) };
+        let global : GenOp<(), ()> = GenOp::Vm { name: "global".into(), op: |_, _| Ok(None) };
+        let local : GenOp<(), ()> = GenOp::Vm { name: "local".into(), op: |_, _| Ok(None) };
+        let frame : GenOp<(), ()> = GenOp::Vm { name: "frame".into(), op: |_, _| Ok(None) };
+
+        assert_eq!(vm.name(), "vm".into());
+        assert_eq!(dyn_global.name(), "dyn_global".into());
+        assert_eq!(global.name(), "global".into());
+        assert_eq!(local.name(), "local".into());
+        assert_eq!(frame.name(), "frame".into());
     }
 }

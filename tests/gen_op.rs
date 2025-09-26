@@ -6,6 +6,48 @@ use an_a_vm::data::*;
 use an_a_vm::error::*;
 
 #[test]
+fn should_handle_dynamic_global_interaction() {
+    #[derive(Clone)]
+    enum L {
+        Ref(usize),
+        Num(usize),
+    }
+
+    let op = GenOp::DynGlobal {
+        name: "op".into(),
+        op: |globals, locals, params| {
+            if let L::Ref(addr) = locals[params[0]] {
+                Ok(Some(L::Num(globals[addr] + 1)))
+            }
+            else {
+                panic!("must be ref");
+            }
+        }
+    };
+
+    let main = Fun {
+        name: "main".into(),
+        instrs: vec![
+            Op::PushLocal(L::Ref(0)),
+            Op::PushLocal(L::Ref(1)),
+            Op::Gen(0, vec![1]),
+            Op::PushRet,
+            Op::ReturnLocal(2),
+        ],
+    };
+
+    let mut vm : Vm<L, usize> = Vm::new( 
+        vec![main],
+        vec![op]);
+
+    vm.with_globals(vec![0, 3]);
+
+    let data = vm.run(0).unwrap().unwrap();
+
+    assert!(matches!(data, L::Num(4)));
+}
+
+#[test]
 fn should_modify_global() {
     let op = GenOp::Global {
         name: "op".into(),
